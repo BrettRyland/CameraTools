@@ -227,7 +227,7 @@ namespace CameraTools
 		{
 			get
 			{
-				return Time.time - pathStartTime;
+				return Time.unscaledTime - pathStartTime;
 			}
 		}
 		Vector2 keysScrollPos;
@@ -1472,7 +1472,7 @@ namespace CameraTools
 			zoomExp = firstFrame.zoom;
 
 			isPlayingPath = true;
-			pathStartTime = Time.time;
+			pathStartTime = Time.unscaledTime;
 		}
 
 		void StopPlayingPath()
