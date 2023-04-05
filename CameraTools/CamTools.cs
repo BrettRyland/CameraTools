@@ -2297,7 +2297,7 @@ namespace CameraTools
 			{
 				if (randomMode)
 				{
-					var lowAlt = Math.Max(30d, -3d * vessel.verticalSpeed); // 30m or 3s to impact, whichever is higher.
+					var lowAlt = Math.Max(30d, -5d * vessel.verticalSpeed * Mathf.Max(0, Vector3.Dot(vessel.srf_vel_direction, -cameraUp))); // 30m or up to 5s to impact (depending on angle), whichever is higher.
 					var stationarySurfaceVessel = (vessel.Landed && vessel.Speed() < 1) || (vessel.Splashed && vessel.Speed() < 5); // Land or water vessel that isn't moving much.
 					if (stationarySurfaceVessel || (bdArmory.hasPilotAI && vessel.radarAltitude < lowAlt))
 					{
