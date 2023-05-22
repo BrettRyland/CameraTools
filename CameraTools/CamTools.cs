@@ -68,6 +68,7 @@ namespace CameraTools
 		[CTPersistantField] public string fmZoomOutKey = "[3]";
 		[CTPersistantField] public string fmMovementModifier = "enter";
 		[CTPersistantField] public string fmModeToggleKey = "[2]";
+		[CTPersistantField] public string resetRollKey;
 		bool waitingForTarget = false;
 		bool waitingForPosition = false;
 		bool mouseUp = false;
@@ -677,7 +678,6 @@ namespace CameraTools
 					}
 				}
 			}
-			boundThisFrame = false;
 
 			if (MapView.MapIsEnabled) return; // Don't do anything else in map mode.
 
@@ -844,6 +844,7 @@ namespace CameraTools
 
 		void LateUpdate()
 		{
+			boundThisFrame = false;
 			UpdateCameraShake(); // Update camera shake each frame so that it dies down.
 			if (hasDied && cameraToolActive)
 			{
@@ -1649,6 +1650,12 @@ namespace CameraTools
 							}
 						}
 						break;
+				}
+
+				if (!string.IsNullOrEmpty(resetRollKey) && Input.GetKeyDown(resetRollKey))
+				{
+					stationaryCameraRoll = Quaternion.identity;
+					flightCamera.transform.rotation = Quaternion.LookRotation(flightCamera.transform.forward, stationaryCameraRoll * cameraUp);
 				}
 			}
 
@@ -3187,6 +3194,7 @@ namespace CameraTools
 				fmZoomOutKey = KeyBinding(fmZoomOutKey, "Zoom Out", ++line);
 				fmMovementModifier = KeyBinding(fmMovementModifier, "Modifier", ++line);
 				fmModeToggleKey = KeyBinding(fmModeToggleKey, "FM Mode", ++line);
+				resetRollKey = KeyBinding(resetRollKey, "Reset Roll", ++line);
 			}
 
 			Rect saveRect = HalfRect(++line, 0);
