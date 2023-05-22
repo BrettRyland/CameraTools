@@ -2525,10 +2525,10 @@ namespace CameraTools
 		{ return new Rect(leftIndent + pos * (contentWidth / 2f + 2f), contentTop + line * entryHeight, contentWidth / 2 - 2, entryHeight - 2); }
 		Rect SliderLabelLeft(float line, float indent)
 		{ return new Rect(leftIndent, contentTop + line * entryHeight, indent, entryHeight); }
-		Rect SliderLabelRight(float line)
-		{ return new Rect(leftIndent + contentWidth - 25f, contentTop + line * entryHeight, 25f, entryHeight); }
-		Rect SliderRect(float line, float indent)
-		{ return new Rect(leftIndent + indent, contentTop + line * entryHeight + 6f, contentWidth - indent - 30f, entryHeight); }
+		Rect SliderLabelRight(float line, float widthAdjust = 0)
+		{ return new Rect(leftIndent + contentWidth - 25f - widthAdjust, contentTop + line * entryHeight, 25f + widthAdjust, entryHeight); }
+		Rect SliderRect(float line, float indent, float widthAdjust = 0)
+		{ return new Rect(leftIndent + indent, contentTop + line * entryHeight + 6f, contentWidth - indent - 30f + widthAdjust, entryHeight); }
 		Rect RightSliderRect(float line)
 		{ return new Rect(windowWidth / 2f + 3f * leftIndent, contentTop + line * entryHeight + 6f, contentWidth / 2f - 3f * leftIndent, entryHeight); }
 		void SetupInputFieldStyle()
@@ -3162,6 +3162,10 @@ namespace CameraTools
 					inputFields["keyZoomSpeed"].tryParseValue(GUI.TextField(RightRect(line), inputFields["keyZoomSpeed"].possibleValue, 8, inputFieldStyle));
 					keyZoomSpeed = inputFields["keyZoomSpeed"].currentValue;
 				}
+
+				GUI.Label(SliderLabelLeft(++line, contentWidth / 2f - 30f), "Mode:");
+				fmMode = (fmModeTypes)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)fmMode, 0, 1));
+				GUI.Label(SliderLabelRight(line, 30f), fmMode.ToString());
 			}
 			line++;
 
