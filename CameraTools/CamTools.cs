@@ -68,7 +68,7 @@ namespace CameraTools
 		[CTPersistantField] public string fmZoomOutKey = "[3]";
 		[CTPersistantField] public string fmMovementModifier = "enter";
 		[CTPersistantField] public string fmModeToggleKey = "[2]";
-		[CTPersistantField] public string resetRollKey;
+		[CTPersistantField] public string resetRollKey = "";
 		bool waitingForTarget = false;
 		bool waitingForPosition = false;
 		bool mouseUp = false;
