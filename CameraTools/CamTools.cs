@@ -1,8 +1,8 @@
 using KSP.UI.Screens;
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections;
 using System.IO;
-using System.Reflection;
+using System.Linq;
 using System;
 using UnityEngine;
 
@@ -455,7 +455,7 @@ namespace CameraTools
 			{
 				wasActiveBeforeModeChange = cameraToolActive;
 				cameraToolActive = false;
-				Debug.Log($"[CameraTools]: Deactivating due to switching to {mode} camera mode.");
+				if (wasActiveBeforeModeChange) Debug.Log($"[CameraTools]: Deactivating due to switching to {mode} camera mode.");
 			}
 			else if (mode == CameraManager.CameraMode.Flight)
 			{
@@ -468,7 +468,10 @@ namespace CameraTools
 					flightCamera.transform.position = deathCam.transform.position;
 					flightCamera.transform.rotation = deathCam.transform.rotation;
 					if (!revertWhenInFlightMode)
-						cameraActivate();
+					{
+						if (CameraManager.Instance.previousCameraMode == CameraManager.CameraMode.Map) StartCoroutine(DelayActivation(1, false)); // Something messes with the camera position on the first frame after switching.
+						else cameraActivate();
+					}
 				}
 				else if (revertWhenInFlightMode)
 				{
@@ -478,6 +481,21 @@ namespace CameraTools
 					RevertCamera();
 				}
 			}
+		}
+
+		IEnumerator DelayActivation(int frames, bool fixedUpdate = false)
+		{
+			if (fixedUpdate)
+			{
+				var wait = new WaitForFixedUpdate();
+				for (int i = 0; i < frames; ++i) yield return wait;
+			}
+			else
+			{
+				var wait = new WaitForEndOfFrame();
+				for (int i = 0; i < frames; ++i) yield return wait;
+			}
+			cameraActivate();
 		}
 
 		bool wasUsingObtVel = false;
@@ -3548,6 +3566,7 @@ namespace CameraTools
 
 		void SetCameraParent(Transform referenceTransform, bool resetToCoM = false)
 		{
+			if (DEBUG) Debug.Log($"[CameraTools]: Setting the camera parent to {referenceTransform.gameObject.name} from {flightCamera.gameObject.name}, reset-to-CoM: {resetToCoM}");
 			cameraParent.transform.position = referenceTransform.position;
 			cameraParent.transform.rotation = referenceTransform.rotation;
 			flightCamera.SetTargetNone();
