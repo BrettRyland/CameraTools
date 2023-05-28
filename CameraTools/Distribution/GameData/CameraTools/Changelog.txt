@@ -3,6 +3,7 @@ Improvements / Bugfixes:
 - Add a visual toggle for free-move mode (speed vs position).
 - Add an optional keybind for resetting the roll in stationary camera mode. Initially unbound, remove the entry from the settings.cfg to unbind it once bound.
 - Fix camera position in Stationary and Dogfight modes when returning from Map mode.
+- Add a free-look mode to Dogfight mode (hold right mouse button).
 
 v1.27.0
 Improvements / Bugfixes:

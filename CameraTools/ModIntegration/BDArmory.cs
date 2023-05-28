@@ -47,9 +47,11 @@ namespace CameraTools.ModIntegration
 		object bdBDATournamentInstance = null;
 		Func<object, bool> bdTournamentWarpInProgressFieldGetter = null;
 		bool hasBDWM = false;
+		Type aiModType = null;
 		object aiComponent = null;
-		object wmComponent = null;
 		Func<object, Vessel> bdAITargetFieldGetter = null;
+		Type wmModType = null;
+		object wmComponent = null;
 		Func<object, Vessel> bdWmThreatFieldGetter = null;
 		Func<object, Vessel> bdWmMissileFieldGetter = null;
 		Func<object, bool> bdWmUnderFireFieldGetter = null;
@@ -77,6 +79,8 @@ namespace CameraTools.ModIntegration
 			CheckForBDA();
 			if (hasBDA)
 			{
+				aiModType = GetAIModuleType();
+				wmModType = GetWeaponManagerType();
 				GetAITargetField();
 				GetThreatField();
 				GetMissileField();
@@ -320,7 +324,7 @@ namespace CameraTools.ModIntegration
 			return null;
 		}
 
-		Type AIModuleType()
+		Type GetAIModuleType()
 		{
 			foreach (var assy in AssemblyLoader.loadedAssemblies)
 			{
@@ -340,7 +344,7 @@ namespace CameraTools.ModIntegration
 			return null;
 		}
 
-		Type WeaponManagerType()
+		Type GetWeaponManagerType()
 		{
 			foreach (var assy in AssemblyLoader.loadedAssemblies)
 			{
@@ -472,7 +476,6 @@ namespace CameraTools.ModIntegration
 
 		FieldInfo GetThreatField()
 		{
-			Type wmModType = WeaponManagerType();
 			if (wmModType == null) return null;
 
 			FieldInfo[] fields = wmModType.GetFields(BindingFlags.Public | BindingFlags.Instance);
@@ -491,7 +494,6 @@ namespace CameraTools.ModIntegration
 
 		FieldInfo GetMissileField()
 		{
-			Type wmModType = WeaponManagerType();
 			if (wmModType == null) return null;
 
 			FieldInfo[] fields = wmModType.GetFields(BindingFlags.Public | BindingFlags.Instance);
@@ -510,7 +512,6 @@ namespace CameraTools.ModIntegration
 
 		FieldInfo GetUnderFireField()
 		{
-			Type wmModType = WeaponManagerType();
 			if (wmModType == null) return null;
 
 			FieldInfo[] fields = wmModType.GetFields(BindingFlags.Public | BindingFlags.Instance);
@@ -529,7 +530,6 @@ namespace CameraTools.ModIntegration
 
 		FieldInfo GetUnderAttackField()
 		{
-			Type wmModType = WeaponManagerType();
 			if (wmModType == null) return null;
 
 			FieldInfo[] fields = wmModType.GetFields(BindingFlags.Public | BindingFlags.Instance);
@@ -548,7 +548,6 @@ namespace CameraTools.ModIntegration
 
 		FieldInfo GetAITargetField()
 		{
-			Type aiModType = AIModuleType();
 			if (aiModType == null) return null;
 
 			FieldInfo[] fields = aiModType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
@@ -567,7 +566,6 @@ namespace CameraTools.ModIntegration
 
 		PropertyInfo GetRecentlyFiringProperty()
 		{
-			Type wmModType = WeaponManagerType();
 			if (wmModType == null) return null;
 
 			PropertyInfo[] propertyInfos = wmModType.GetProperties(BindingFlags.Public | BindingFlags.Instance);

@@ -19,6 +19,7 @@ namespace CameraTools.ModIntegration
 		float lastChecked = 0;
 		Vessel activeVessel = null;
 		Vector3 lastTarget = default;
+		float freeLookRecovery = 0;
 
 		void Awake()
 		{
@@ -133,5 +134,9 @@ namespace CameraTools.ModIntegration
 		public static bool IsMouseAimActive() => hasMouseAimFlight && Instance != null && Instance.IsMouseAimFlightActive();
 		public static Vector3 GetMouseAimTarget() => Instance.GetCurrentMouseAimTarget();
 		public static void SetMouseAimTarget(Vector3 position) => Instance.SetCurrentMouseAimTarget(position);
+
+		// Free Look
+		public static void SetFreeLookCooldown(float recoveryPeriod) => Instance.freeLookRecovery = Time.time + recoveryPeriod;
+		public static bool IsInFreeLookRecovery => Time.time < Instance.freeLookRecovery;
 	}
 }

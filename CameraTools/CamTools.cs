@@ -53,6 +53,8 @@ namespace CameraTools
 		Vector3 forwardAxis;
 		Vector3 rightAxis;
 
+		bool freeLook = false;
+
 		#region Input
 		[CTPersistantField] public string cameraKey = "home";
 		[CTPersistantField] public string revertKey = "end";
@@ -909,6 +911,7 @@ namespace CameraTools
 			{
 				timeControl.SetTimeControlCameraZoomFix(false);
 				betterTimeWarp.SetBetterTimeWarpScaleCameraSpeed(false);
+				freeLook = false;
 			}
 			if (!cameraToolActive && !cameraParentWasStolen)
 			{
@@ -1116,17 +1119,32 @@ namespace CameraTools
 			}
 
 			//rotation
-			Quaternion vesselLook = Quaternion.LookRotation(vessel.CoM - cameraTransform.position, dogfightCameraRollUp);
-			Quaternion targetLook = Quaternion.LookRotation(dogfightLastTargetPosition - cameraTransform.position, dogfightCameraRollUp);
-			Quaternion camRot = Quaternion.Lerp(vesselLook, targetLook, 0.5f);
-			cameraTransform.rotation = Quaternion.Lerp(cameraTransform.rotation, camRot, dogfightLerp);
-			if (MouseAimFlight.IsMouseAimActive())
+			if (Input.GetKey(KeyCode.Mouse1)) // Free-look
 			{
-				// mouseAimFlightTarget keeps the target stationary (i.e., no change from the default)
-				// cameraTransform.TransformDirection(mouseAimFlightTargetLocal) moves the target fully with the camera
-				var newMouseAimFlightTarget = cameraTransform.TransformDirection(mouseAimFlightTargetLocal);
-				newMouseAimFlightTarget = Vector3.Lerp(newMouseAimFlightTarget, mouseAimFlightTarget, Mathf.Min((newMouseAimFlightTarget - mouseAimFlightTarget).magnitude * 0.01f, 0.5f));
-				MouseAimFlight.SetMouseAimTarget(newMouseAimFlightTarget); // Adjust how MouseAimFlight updates the target position for easier control in combat.
+				freeLook = true;
+				cameraTransform.rotation *= Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 1.7f, Vector3.up);
+				cameraTransform.rotation *= Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 1.7f, Vector3.right);
+				cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, dogfightCameraRollUp);
+			}
+			else
+			{
+				Quaternion vesselLook = Quaternion.LookRotation(vessel.CoM - cameraTransform.position, dogfightCameraRollUp);
+				Quaternion targetLook = Quaternion.LookRotation(dogfightLastTargetPosition - cameraTransform.position, dogfightCameraRollUp);
+				Quaternion camRot = Quaternion.Lerp(vesselLook, targetLook, 0.5f);
+				cameraTransform.rotation = Quaternion.Lerp(cameraTransform.rotation, camRot, dogfightLerp);
+				if (MouseAimFlight.IsMouseAimActive())
+				{
+					if (freeLook) MouseAimFlight.SetFreeLookCooldown(1); // Give it 1s for the camera orientation to recover before resuming applying our modification to the MouseAimFlight target.
+					if (!MouseAimFlight.IsInFreeLookRecovery)
+					{
+						// mouseAimFlightTarget keeps the target stationary (i.e., no change from the default)
+						// cameraTransform.TransformDirection(mouseAimFlightTargetLocal) moves the target fully with the camera
+						var newMouseAimFlightTarget = cameraTransform.TransformDirection(mouseAimFlightTargetLocal);
+						newMouseAimFlightTarget = Vector3.Lerp(newMouseAimFlightTarget, mouseAimFlightTarget, Mathf.Min((newMouseAimFlightTarget - mouseAimFlightTarget).magnitude * 0.01f, 0.5f));
+						MouseAimFlight.SetMouseAimTarget(newMouseAimFlightTarget); // Adjust how MouseAimFlight updates the target position for easier control in combat.
+					}
+				}
+				freeLook = false;
 			}
 
 			//autoFov
