@@ -1,3 +1,6 @@
+Improvements / Bugfixes:
+- Add a configurable delay to activating free-look mode (default: 0.1s).
+
 v1.28.0
 Improvements / Bugfixes:
 - Adjust random mode selection for low altitude to be more amenable to BDA pod-racing.

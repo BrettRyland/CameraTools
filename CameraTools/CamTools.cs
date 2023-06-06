@@ -54,6 +54,8 @@ namespace CameraTools
 		Vector3 rightAxis;
 
 		bool freeLook = false;
+		float freeLookTimer = 0;
+		[CTPersistantField] public float freeLookDelay = 0.1f;
 
 		#region Input
 		[CTPersistantField] public string cameraKey = "home";
@@ -1121,7 +1123,20 @@ namespace CameraTools
 			//rotation
 			if (Input.GetKey(KeyCode.Mouse1)) // Free-look
 			{
-				freeLook = true;
+				if (freeLookTimer >= freeLookDelay) freeLook = true; // Use a delay-timer to avoid activating on single right-clicks.
+				else freeLookTimer += Time.fixedDeltaTime;
+			}
+			else
+			{
+				freeLookTimer = 0;
+				if (freeLook)
+				{
+					freeLook = false;
+					if (MouseAimFlight.IsMouseAimActive()) MouseAimFlight.SetFreeLookCooldown(1); // Give it 1s for the camera orientation to recover before resuming applying our modification to the MouseAimFlight target.
+				}
+			}
+			if (freeLook)
+			{
 				cameraTransform.rotation *= Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 1.7f, Vector3.up);
 				cameraTransform.rotation *= Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 1.7f, Vector3.right);
 				cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, dogfightCameraRollUp);
@@ -1134,7 +1149,6 @@ namespace CameraTools
 				cameraTransform.rotation = Quaternion.Lerp(cameraTransform.rotation, camRot, dogfightLerp);
 				if (MouseAimFlight.IsMouseAimActive())
 				{
-					if (freeLook) MouseAimFlight.SetFreeLookCooldown(1); // Give it 1s for the camera orientation to recover before resuming applying our modification to the MouseAimFlight target.
 					if (!MouseAimFlight.IsInFreeLookRecovery)
 					{
 						// mouseAimFlightTarget keeps the target stationary (i.e., no change from the default)
@@ -1144,7 +1158,6 @@ namespace CameraTools
 						MouseAimFlight.SetMouseAimTarget(newMouseAimFlightTarget); // Adjust how MouseAimFlight updates the target position for easier control in combat.
 					}
 				}
-				freeLook = false;
 			}
 
 			//autoFov
