@@ -54,8 +54,8 @@ namespace CameraTools
 		Vector3 rightAxis;
 
 		bool freeLook = false;
-		float freeLookTimer = 0;
-		[CTPersistantField] public float freeLookDelay = 0.1f;
+		Vector2 freeLookStartUpDistance = Vector2.zero;
+		[CTPersistantField] public float freeLookThresholdSqr = 0.1f; // Mouse movement threshold for starting free look (units unknown).
 
 		#region Input
 		[CTPersistantField] public string cameraKey = "home";
@@ -437,6 +437,7 @@ namespace CameraTools
 				{"freeMoveSpeed", gameObject.AddComponent<FloatInputField>().Initialise(0, freeMoveSpeed, freeMoveSpeedMin, freeMoveSpeedMax, 4)},
 				{"keyZoomSpeed", gameObject.AddComponent<FloatInputField>().Initialise(0, keyZoomSpeed, keyZoomSpeedMin, keyZoomSpeedMax, 4)},
 				{"maxRelV", gameObject.AddComponent<FloatInputField>().Initialise(0, maxRelV, float.MinValue, float.MaxValue, 6)},
+				{"freeLookThresholdSqr", gameObject.AddComponent<FloatInputField>().Initialise(0, freeLookThresholdSqr, 0, 1, 4)},
 			};
 		}
 
@@ -914,6 +915,7 @@ namespace CameraTools
 				timeControl.SetTimeControlCameraZoomFix(false);
 				betterTimeWarp.SetBetterTimeWarpScaleCameraSpeed(false);
 				freeLook = false;
+				freeLookStartUpDistance = Vector2.zero;
 			}
 			if (!cameraToolActive && !cameraParentWasStolen)
 			{
@@ -1123,12 +1125,17 @@ namespace CameraTools
 			//rotation
 			if (Input.GetKey(KeyCode.Mouse1)) // Free-look
 			{
-				if (freeLookTimer >= freeLookDelay) freeLook = true; // Use a delay-timer to avoid activating on single right-clicks.
-				else freeLookTimer += Time.fixedDeltaTime;
+				if (!freeLook)
+				{
+					freeLookStartUpDistance.x += Input.GetAxis("Mouse X");
+					freeLookStartUpDistance.y += -Input.GetAxis("Mouse Y");
+					if (freeLookStartUpDistance.sqrMagnitude > freeLookThresholdSqr)
+						freeLook = true;
+				}
 			}
 			else
 			{
-				freeLookTimer = 0;
+				freeLookStartUpDistance = Vector2.zero;
 				if (freeLook)
 				{
 					freeLook = false;
@@ -2729,7 +2736,7 @@ namespace CameraTools
 				inputFields["shakeMultiplier"].tryParseValue(GUI.TextField(RightRect(line), inputFields["shakeMultiplier"].possibleValue, 8, inputFieldStyle));
 				shakeMultiplier = inputFields["shakeMultiplier"].currentValue;
 			}
-			line++;
+			++line;
 
 			//Stationary camera GUI
 			if (toolMode == ToolModes.StationaryCamera)
@@ -2939,6 +2946,18 @@ namespace CameraTools
 					GUI.Label(QuarterRect(line, 2), "Roll: ", rightLabel);
 					inputFields["dogfightRoll"].tryParseValue(GUI.TextField(QuarterRect(line, 3), inputFields["dogfightRoll"].possibleValue, 8, inputFieldStyle));
 					dogfightRoll = inputFields["dogfightRoll"].currentValue;
+				}
+
+				GUI.Label(SliderLabelLeft(++line, 95f), $"Free-Look Thr.:");
+				if (!textInput)
+				{
+					freeLookThresholdSqr = MathUtils.RoundToUnit(GUI.HorizontalSlider(SliderRect(line, 95f), freeLookThresholdSqr, 0f, 1f), 0.1f);
+					GUI.Label(SliderLabelRight(line), $"{freeLookThresholdSqr:G2}");
+				}
+				else
+				{
+					inputFields["freeLookThresholdSqr"].tryParseValue(GUI.TextField(RightRect(line), inputFields["freeLookThresholdSqr"].possibleValue, 8, inputFieldStyle));
+					freeLookThresholdSqr = inputFields["freeLookThresholdSqr"].currentValue;
 				}
 
 				GUI.Label(SliderLabelLeft(++line, 95f), $"Camera Inertia:");

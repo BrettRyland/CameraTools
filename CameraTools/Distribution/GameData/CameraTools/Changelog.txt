@@ -1,5 +1,5 @@
 Improvements / Bugfixes:
-- Add a configurable delay to activating free-look mode (default: 0.1s).
+- Add a configurable movement threshold to activating free-look mode (default: 0.1).
 
 v1.28.0
 Improvements / Bugfixes:
