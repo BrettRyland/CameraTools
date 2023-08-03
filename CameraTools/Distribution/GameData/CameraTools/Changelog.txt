@@ -1,5 +1,6 @@
 Improvements / Bugfixes:
 - Add a configurable movement threshold to activating free-look mode (default: 0.1).
+- If the camera parent gets stolen, automatically steal it back if it's the original camera parent (due to spawning a kerbal, BDA MML, etc.).
 
 v1.28.0
 Improvements / Bugfixes:

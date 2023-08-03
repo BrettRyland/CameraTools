@@ -776,12 +776,22 @@ namespace CameraTools
 			{
 				if ((!hasDied && flightCamera.transform.parent != cameraParent.transform) || (hasDied && flightCamera.transform.parent != deathCam.transform))
 				{
-					message = "Someone has stolen the camera parent! Abort!";
-					Debug.Log("[CameraTools]: " + message);
-					if (DEBUG) DebugLog(message);
-					cameraToolActive = false;
-					cameraParentWasStolen = true;
-					RevertCamera();
+					if (flightCamera.transform.parent == origParent)
+					{
+						message = "Camera parent got reverted to the main camera parent! Stealing it back!";
+						Debug.Log("[CameraTools]: " + message);
+						if (DEBUG) DebugLog(message);
+						flightCamera.transform.parent = hasDied ? deathCam.transform : cameraParent.transform; // KSP reverted the camera parent (e.g., when spawning a new missile or kerbal), steal it back.
+					}
+					else
+					{
+						message = "Someone has stolen the camera parent! Abort!";
+						Debug.Log("[CameraTools]: " + message);
+						if (DEBUG) DebugLog(message);
+						cameraToolActive = false;
+						cameraParentWasStolen = true;
+						RevertCamera();
+					}
 				}
 			}
 
