@@ -177,9 +177,10 @@ namespace CameraTools
 		Vessel dogfightPrevTarget;
 		public Vessel dogfightTarget;
 		[CTPersistantField] public float dogfightDistance = 30f;
+		[CTPersistantField] public float dogfightMaxDistance = 100;
 		[CTPersistantField] public float dogfightOffsetX = 10f;
 		[CTPersistantField] public float dogfightOffsetY = 4f;
-		float dogfightMaxOffset = 50;
+		[CTPersistantField] public float dogfightMaxOffset = 50;
 		[CTPersistantField] public bool dogfightInertialChaseMode = false;
 		[CTPersistantField] public float dogfightLerp = 0.2f;
 		[CTPersistantField] public float dogfightRoll = 0f;
@@ -190,6 +191,7 @@ namespace CameraTools
 		Vector3 dogfightCameraRollUp = Vector3.up;
 		[CTPersistantField] public float autoZoomMarginDogfight = 20;
 		[CTPersistantField] public float autoZoomMarginStationary = 20;
+		[CTPersistantField] public float autoZoomMarginMax = 50f;
 		public float autoZoomMargin
 		{
 			get
@@ -251,6 +253,8 @@ namespace CameraTools
 		[CTPersistantField] public float keyZoomSpeedMax = 10f;
 		[CTPersistantField] public float zoomExpDogfight = 1f;
 		[CTPersistantField] public float zoomExpStationary = 1f;
+		[CTPersistantField] public float zoomMax = 1000f;
+		float zoomMaxExp = 8f;
 		public float zoomExp
 		{
 			get
@@ -419,10 +423,10 @@ namespace CameraTools
 			contentWidth = (windowWidth) - (2 * leftIndent);
 
 			inputFields = new Dictionary<string, FloatInputField> {
-				{"autoZoomMargin", gameObject.AddComponent<FloatInputField>().Initialise(0, autoZoomMargin, 0f, 50f, 4)},
-				{"zoomFactor", gameObject.AddComponent<FloatInputField>().Initialise(0, zoomFactor, 1f, 1096.63f, 4)},
+				{"autoZoomMargin", gameObject.AddComponent<FloatInputField>().Initialise(0, autoZoomMargin, 0f, autoZoomMarginMax, 4)},
+				{"zoomFactor", gameObject.AddComponent<FloatInputField>().Initialise(0, zoomFactor, 1f, zoomMax, 4)},
 				{"shakeMultiplier", gameObject.AddComponent<FloatInputField>().Initialise(0, shakeMultiplier, 0f, 10f, 1)},
-				{"dogfightDistance", gameObject.AddComponent<FloatInputField>().Initialise(0, dogfightDistance, 1f, 100f, 3)},
+				{"dogfightDistance", gameObject.AddComponent<FloatInputField>().Initialise(0, dogfightDistance, 1f, dogfightMaxDistance, 3)},
 				{"dogfightOffsetX", gameObject.AddComponent<FloatInputField>().Initialise(0, dogfightOffsetX, -dogfightMaxOffset, dogfightMaxOffset, 3)},
 				{"dogfightOffsetY", gameObject.AddComponent<FloatInputField>().Initialise(0, dogfightOffsetY, -dogfightMaxOffset, dogfightMaxOffset, 3)},
 				{"dogfightLerp", gameObject.AddComponent<FloatInputField>().Initialise(0, dogfightLerp, 0.01f, 0.5f, 3)},
@@ -822,17 +826,17 @@ namespace CameraTools
 							if (Mathf.Abs(dogfightOffsetY) >= dogfightMaxOffset) fmSpeeds.y = 0;
 							dogfightOffsetX = Mathf.Clamp(dogfightOffsetX + fmSpeeds.x, -dogfightMaxOffset, dogfightMaxOffset);
 							if (Mathf.Abs(dogfightOffsetX) >= dogfightMaxOffset) fmSpeeds.x = 0;
-							dogfightDistance = Mathf.Clamp(dogfightDistance + fmSpeeds.z, 1f, 100f);
-							if (dogfightDistance <= 1f || dogfightDistance >= 100f) fmSpeeds.z = 0;
+							dogfightDistance = Mathf.Clamp(dogfightDistance + fmSpeeds.z, 1f, dogfightMaxDistance);
+							if (dogfightDistance <= 1f || dogfightDistance >= dogfightMaxDistance) fmSpeeds.z = 0;
 							if (!autoFOV)
 							{
-								zoomExp = Mathf.Clamp(zoomExp + fmSpeeds.w, 1, 8);
-								if (zoomExp <= 1 || zoomExp >= 8) fmSpeeds.w = 0;
+								zoomExp = Mathf.Clamp(zoomExp + fmSpeeds.w, 1, zoomMaxExp);
+								if (zoomExp <= 1 || zoomExp >= zoomMaxExp) fmSpeeds.w = 0;
 							}
 							else
 							{
-								autoZoomMargin = Mathf.Clamp(autoZoomMargin + 10 * fmSpeeds.w, 0, 50);
-								if (autoZoomMargin <= 0 || autoZoomMargin >= 50) fmSpeeds.w = 0;
+								autoZoomMargin = Mathf.Clamp(autoZoomMargin + 10 * fmSpeeds.w, 0, autoZoomMarginMax);
+								if (autoZoomMargin <= 0 || autoZoomMargin >= autoZoomMarginMax) fmSpeeds.w = 0;
 							}
 						}
 						break;
@@ -843,13 +847,13 @@ namespace CameraTools
 							manualPosition += upAxis * fmSpeeds.y + forwardAxis * fmSpeeds.z + rightAxis * fmSpeeds.x;
 							if (!autoFOV)
 							{
-								zoomExp = Mathf.Clamp(zoomExp + fmSpeeds.w, 1f, 8f);
-								if (zoomExp <= 1f || zoomExp >= 8f) fmSpeeds.w = 0;
+								zoomExp = Mathf.Clamp(zoomExp + fmSpeeds.w, 1f, zoomMaxExp);
+								if (zoomExp <= 1f || zoomExp >= zoomMaxExp) fmSpeeds.w = 0;
 							}
 							else
 							{
-								autoZoomMargin = Mathf.Clamp(autoZoomMargin + 10 * fmSpeeds.w, 0f, 50f);
-								if (autoZoomMargin <= 0f || autoZoomMargin >= 50f) fmSpeeds.w = 0;
+								autoZoomMargin = Mathf.Clamp(autoZoomMargin + 10 * fmSpeeds.w, 0f, autoZoomMarginMax);
+								if (autoZoomMargin <= 0f || autoZoomMargin >= autoZoomMarginMax) fmSpeeds.w = 0;
 							}
 						}
 						break;
@@ -858,8 +862,8 @@ namespace CameraTools
 						if (fmMode == fmModeTypes.Speed)
 						{
 							flightCamera.transform.position += upAxis * fmSpeeds.y + forwardAxis * fmSpeeds.z + rightAxis * fmSpeeds.x; // Note: for vessel relative movement, the modifier key will need to be held.
-							zoomExp = Mathf.Clamp(zoomExp + fmSpeeds.w, 1f, 8f);
-							if (zoomExp <= 1f || zoomExp >= 8f) fmSpeeds.w = 0;
+							zoomExp = Mathf.Clamp(zoomExp + fmSpeeds.w, 1f, zoomMaxExp);
+							if (zoomExp <= 1f || zoomExp >= zoomMaxExp) fmSpeeds.w = 0;
 						}
 						break;
 					default:
@@ -1123,7 +1127,7 @@ namespace CameraTools
 			{
 				Debug2Log("time scale: " + Time.timeScale.ToString("G3") + ", Δt: " + Time.fixedDeltaTime.ToString("G3"));
 				Debug2Log("offsetDirection: " + offsetDirectionX.ToString("G3"));
-				Debug2Log("target offset: " + ((vessel.CoM - dogfightLastTargetPosition).normalized * dogfightDistance).ToString("G3"));
+				Debug2Log("target offset: " + ((vessel.CoM - dogfightLastTargetPosition).normalized * dogfightDistance).ToString("G4"));
 				Debug2Log("xOff: " + (dogfightOffsetX * offsetDirectionX).ToString("G3"));
 				Debug2Log("yOff: " + (dogfightOffsetY * dogfightCameraRollUp).ToString("G3"));
 				Debug2Log("camPos - vessel.CoM: " + (camPos - vessel.CoM).ToString("G3"));
@@ -1234,13 +1238,13 @@ namespace CameraTools
 							if (Input.GetKey(fmForwardKey))
 							{
 								dogfightDistance -= freeMoveSpeed * Time.fixedDeltaTime;
-								dogfightDistance = Mathf.Clamp(dogfightDistance, 1f, 100f);
+								dogfightDistance = Mathf.Clamp(dogfightDistance, 1f, dogfightMaxDistance);
 								if (textInput) inputFields["dogfightDistance"].currentValue = dogfightDistance;
 							}
 							else if (Input.GetKey(fmBackKey))
 							{
 								dogfightDistance += freeMoveSpeed * Time.fixedDeltaTime;
-								dogfightDistance = Mathf.Clamp(dogfightDistance, 1f, 100f);
+								dogfightDistance = Mathf.Clamp(dogfightDistance, 1f, dogfightMaxDistance);
 								if (textInput) inputFields["dogfightDistance"].currentValue = dogfightDistance;
 							}
 							if (Input.GetKey(fmLeftKey))
@@ -1261,12 +1265,12 @@ namespace CameraTools
 							{
 								if (Input.GetKey(fmZoomInKey))
 								{
-									zoomExp = Mathf.Clamp(zoomExp + (keyZoomSpeed * Time.fixedDeltaTime), 1, 8);
+									zoomExp = Mathf.Clamp(zoomExp + (keyZoomSpeed * Time.fixedDeltaTime), 1, zoomMaxExp);
 									if (textInput) inputFields["zoomFactor"].currentValue = Mathf.Exp(zoomExp) / Mathf.Exp(1);
 								}
 								else if (Input.GetKey(fmZoomOutKey))
 								{
-									zoomExp = Mathf.Clamp(zoomExp - (keyZoomSpeed * Time.fixedDeltaTime), 1, 8);
+									zoomExp = Mathf.Clamp(zoomExp - (keyZoomSpeed * Time.fixedDeltaTime), 1, zoomMaxExp);
 									if (textInput) inputFields["zoomFactor"].currentValue = Mathf.Exp(zoomExp) / Mathf.Exp(1);
 								}
 							}
@@ -1274,12 +1278,12 @@ namespace CameraTools
 							{
 								if (Input.GetKey(fmZoomInKey))
 								{
-									autoZoomMargin = Mathf.Clamp(autoZoomMargin + (keyZoomSpeed * 10 * Time.fixedDeltaTime), 0, 50);
+									autoZoomMargin = Mathf.Clamp(autoZoomMargin + (keyZoomSpeed * 10 * Time.fixedDeltaTime), 0, autoZoomMarginMax);
 									if (textInput) inputFields["autoZoomMargin"].currentValue = autoZoomMargin;
 								}
 								else if (Input.GetKey(fmZoomOutKey))
 								{
-									autoZoomMargin = Mathf.Clamp(autoZoomMargin - (keyZoomSpeed * 10 * Time.fixedDeltaTime), 0, 50);
+									autoZoomMargin = Mathf.Clamp(autoZoomMargin - (keyZoomSpeed * 10 * Time.fixedDeltaTime), 0, autoZoomMarginMax);
 									if (textInput) inputFields["autoZoomMargin"].currentValue = autoZoomMargin;
 								}
 							}
@@ -1656,12 +1660,12 @@ namespace CameraTools
 							{
 								if (Input.GetKey(fmZoomInKey))
 								{
-									zoomExp = Mathf.Clamp(zoomExp + (keyZoomSpeed * Time.fixedDeltaTime), 1, 8);
+									zoomExp = Mathf.Clamp(zoomExp + (keyZoomSpeed * Time.fixedDeltaTime), 1, zoomMaxExp);
 									if (textInput) inputFields["zoomFactor"].currentValue = Mathf.Exp(zoomExp) / Mathf.Exp(1);
 								}
 								else if (Input.GetKey(fmZoomOutKey))
 								{
-									zoomExp = Mathf.Clamp(zoomExp - (keyZoomSpeed * Time.fixedDeltaTime), 1, 8);
+									zoomExp = Mathf.Clamp(zoomExp - (keyZoomSpeed * Time.fixedDeltaTime), 1, zoomMaxExp);
 									if (textInput) inputFields["zoomFactor"].currentValue = Mathf.Exp(zoomExp) / Mathf.Exp(1);
 								}
 							}
@@ -1669,12 +1673,12 @@ namespace CameraTools
 							{
 								if (Input.GetKey(fmZoomInKey))
 								{
-									autoZoomMargin = Mathf.Clamp(autoZoomMargin + (keyZoomSpeed * 10 * Time.fixedDeltaTime), 0, 50);
+									autoZoomMargin = Mathf.Clamp(autoZoomMargin + (keyZoomSpeed * 10 * Time.fixedDeltaTime), 0, autoZoomMarginMax);
 									if (textInput) inputFields["autoZoomMargin"].currentValue = autoZoomMargin;
 								}
 								else if (Input.GetKey(fmZoomOutKey))
 								{
-									autoZoomMargin = Mathf.Clamp(autoZoomMargin - (keyZoomSpeed * 10 * Time.fixedDeltaTime), 0, 50);
+									autoZoomMargin = Mathf.Clamp(autoZoomMargin - (keyZoomSpeed * 10 * Time.fixedDeltaTime), 0, autoZoomMarginMax);
 									if (textInput) inputFields["autoZoomMargin"].currentValue = autoZoomMargin;
 								}
 							}
@@ -1886,12 +1890,12 @@ namespace CameraTools
 								//keyZoom Note: pathing doesn't use autoZoomMargin
 								if (Input.GetKey(fmZoomInKey))
 								{
-									zoomExp = Mathf.Clamp(zoomExp + (keyZoomSpeed * Time.fixedDeltaTime), 1, 8);
+									zoomExp = Mathf.Clamp(zoomExp + (keyZoomSpeed * Time.fixedDeltaTime), 1, zoomMaxExp);
 									if (textInput) inputFields["zoomFactor"].currentValue = Mathf.Exp(zoomExp) / Mathf.Exp(1);
 								}
 								else if (Input.GetKey(fmZoomOutKey))
 								{
-									zoomExp = Mathf.Clamp(zoomExp - (keyZoomSpeed * Time.fixedDeltaTime), 1, 8);
+									zoomExp = Mathf.Clamp(zoomExp - (keyZoomSpeed * Time.fixedDeltaTime), 1, zoomMaxExp);
 									if (textInput) inputFields["zoomFactor"].currentValue = Mathf.Exp(zoomExp) / Mathf.Exp(1);
 								}
 							}
@@ -2705,9 +2709,9 @@ namespace CameraTools
 				GUI.Label(LeftRect(++line), "Autozoom Margin: ");
 				if (!textInput)
 				{
-					autoZoomMargin = GUI.HorizontalSlider(new Rect(leftIndent, contentTop + ((++line) * entryHeight), contentWidth - 45, entryHeight), autoZoomMargin, 0, 50);
+					autoZoomMargin = GUI.HorizontalSlider(new Rect(leftIndent, contentTop + ((++line) * entryHeight), contentWidth - 45, entryHeight), autoZoomMargin, 0, autoZoomMarginMax);
 					if (!enableKeypad) autoZoomMargin = Mathf.RoundToInt(autoZoomMargin * 2f) / 2f;
-					GUI.Label(new Rect(leftIndent + contentWidth - 40, contentTop + ((line - 0.15f) * entryHeight), 40, entryHeight), autoZoomMargin.ToString("G3"), leftLabel);
+					GUI.Label(new Rect(leftIndent + contentWidth - 40, contentTop + ((line - 0.15f) * entryHeight), 40, entryHeight), autoZoomMargin.ToString("G4"), leftLabel);
 				}
 				else
 				{
@@ -2720,8 +2724,8 @@ namespace CameraTools
 				GUI.Label(LeftRect(++line), "Zoom:", leftLabel);
 				if (!textInput)
 				{
-					zoomExp = GUI.HorizontalSlider(new Rect(leftIndent, contentTop + ((++line) * entryHeight), contentWidth - 45, entryHeight), zoomExp, 1, 8);
-					GUI.Label(new Rect(leftIndent + contentWidth - 40, contentTop + ((line - 0.15f) * entryHeight), 40, entryHeight), zoomFactor.ToString("G3") + "x", leftLabel);
+					zoomExp = GUI.HorizontalSlider(new Rect(leftIndent, contentTop + ((++line) * entryHeight), contentWidth - 45, entryHeight), zoomExp, 1, zoomMaxExp);
+					GUI.Label(new Rect(leftIndent + contentWidth - 40, contentTop + ((line - 0.15f) * entryHeight), 40, entryHeight), zoomFactor.ToString("G5") + "x", leftLabel);
 				}
 				else
 				{
@@ -2911,9 +2915,9 @@ namespace CameraTools
 				GUI.Label(SliderLabelLeft(++line, 55f), $"Distance:");
 				if (!textInput)
 				{
-					dogfightDistance = GUI.HorizontalSlider(SliderRect(++line, 0f), dogfightDistance, 1f, 100f);
+					dogfightDistance = GUI.HorizontalSlider(SliderRect(++line, 0f, -8f), dogfightDistance, 1f, dogfightMaxDistance);
 					if (!enableKeypad) dogfightDistance = MathUtils.RoundToUnit(dogfightDistance, 1f);
-					GUI.Label(SliderLabelRight(line), $"{dogfightDistance:G3}m");
+					GUI.Label(SliderLabelRight(line, 8f), $"{dogfightDistance:G4}m");
 				}
 				else
 				{
@@ -3757,6 +3761,7 @@ namespace CameraTools
 			zoomSpeedRaw = Mathf.Log10(keyZoomSpeed);
 			zoomSpeedMinRaw = Mathf.Log10(keyZoomSpeedMin);
 			zoomSpeedMaxRaw = Mathf.Log10(keyZoomSpeedMax);
+			zoomMaxExp = Mathf.Log(zoomMax) + 1f;
 			signedMaxRelVSqr = Mathf.Abs(maxRelV) * maxRelV;
 			guiOffsetForward = manualOffsetForward.ToString();
 			guiOffsetRight = manualOffsetRight.ToString();
