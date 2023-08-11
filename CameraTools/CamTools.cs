@@ -395,32 +395,23 @@ namespace CameraTools
 			TimingManager.FixedUpdateAdd(TimingManager.TimingStage.BetterLateThanNever, KrakensbaneWarpCorrection); // Perform our Krakensbane corrections after KSP's floating origin/Krakensbane corrections have run.
 
 			// Styles and rects.
-			cStyle = new GUIStyle(HighLogic.Skin.label);
-			cStyle.fontStyle = UnityEngine.FontStyle.Bold;
-			cStyle.fontSize = 18;
-			cStyle.alignment = TextAnchor.UpperLeft;
+			cStyle = new GUIStyle(HighLogic.Skin.label) { fontStyle = FontStyle.Bold, fontSize = 18, alignment = TextAnchor.UpperLeft };
 			cShadowStyle = new GUIStyle(cStyle);
 			cShadowRect = new Rect(cDebugRect);
 			cShadowRect.x += 2;
 			cShadowRect.y += 2;
 			cShadowStyle.normal.textColor = new Color(0, 0, 0, 0.75f);
-			centerLabel = new GUIStyle();
-			centerLabel.alignment = TextAnchor.UpperCenter;
+			centerLabel = new GUIStyle { alignment = TextAnchor.UpperCenter };
 			centerLabel.normal.textColor = Color.white;
-			leftLabel = new GUIStyle();
-			leftLabel.alignment = TextAnchor.UpperLeft;
+			leftLabel = new GUIStyle { alignment = TextAnchor.UpperLeft };
 			leftLabel.normal.textColor = Color.white;
-			rightLabel = new GUIStyle(leftLabel);
-			rightLabel.alignment = TextAnchor.UpperRight;
-			leftLabelBold = new GUIStyle(leftLabel);
-			leftLabelBold.fontStyle = FontStyle.Bold;
-			titleStyle = new GUIStyle(centerLabel);
-			titleStyle.fontSize = 24;
-			titleStyle.alignment = TextAnchor.MiddleCenter;
+			rightLabel = new GUIStyle(leftLabel) { alignment = TextAnchor.UpperRight };
+			leftLabelBold = new GUIStyle(leftLabel) { fontStyle = FontStyle.Bold };
+			titleStyle = new GUIStyle(centerLabel) { fontSize = 24, alignment = TextAnchor.MiddleCenter };
 			watermarkStyle = new GUIStyle(leftLabel);
 			watermarkStyle.normal.textColor = XKCDColors.LightBlueGrey;
 			watermarkStyle.fontSize = 12;
-			contentWidth = (windowWidth) - (2 * leftIndent);
+			contentWidth = windowWidth - 2 * leftIndent;
 
 			inputFields = new Dictionary<string, FloatInputField> {
 				{"autoZoomMargin", gameObject.AddComponent<FloatInputField>().Initialise(0, autoZoomMargin, 0f, autoZoomMarginMax, 4)},
