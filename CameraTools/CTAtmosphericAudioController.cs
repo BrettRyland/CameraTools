@@ -199,7 +199,7 @@ namespace CameraTools
 				float pressureFactor3 = Mathf.Clamp01(dynamicPressurekPa / 40f);
 				float massFactor3 = Mathf.Clamp01(vesselMass / 10f);
 				//float gFactor3 = Mathf.Clamp(sqrAccel / 325, 0.25f, 1f);
-				windTearAudioSource.volume = pressureFactor3 * massFactor3 * lagAudioFactor;
+				windTearAudioSource.volume = pressureFactor3 * massFactor3 * Mathf.Clamp01(lagAudioFactor);
 
 				windTearAudioSource.minDistance = lagAudioFactor * 1;
 				windTearAudioSource.maxDistance = Mathf.Clamp(lagAudioFactor * 2500, windTearAudioSource.minDistance, 16000);
