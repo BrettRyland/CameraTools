@@ -19,9 +19,9 @@ namespace CameraTools
 		string Version = "unknown";
 		GameObject cameraParent;
 		public Vessel vessel;
-		List<ModuleEngines> engines = new List<ModuleEngines>();
-		List<ModuleCommand> cockpits = new List<ModuleCommand>();
-		public static HashSet<VesselType> ignoreVesselTypesForAudio = new HashSet<VesselType> { VesselType.Debris, VesselType.SpaceObject, VesselType.Unknown, VesselType.Flag }; // Ignore some vessel types to avoid using up all the SoundManager's channels.
+		List<ModuleEngines> engines = new();
+		List<ModuleCommand> cockpits = new();
+		public static HashSet<VesselType> ignoreVesselTypesForAudio = new() { VesselType.Debris, VesselType.SpaceObject, VesselType.Unknown, VesselType.Flag }; // Ignore some vessel types to avoid using up all the SoundManager's channels.
 		Vector3 origPosition;
 		Quaternion origRotation;
 		Vector3 origLocalPosition;
@@ -112,7 +112,7 @@ namespace CameraTools
 		string guiOffsetRight = "50";
 		string guiOffsetUp = "5";
 		[CTPersistantField] public bool targetCoM = false;
-		static List<Tuple<double, string>> debugMessages = new List<Tuple<double, string>>();
+		static List<Tuple<double, string>> debugMessages = new();
 		public static void DebugLog(string m) => debugMessages.Add(new Tuple<double, string>(Time.time, m));
 		Rect cShadowRect = new Rect(Screen.width * 3 / 5, 100, Screen.width / 3 - 50, 100);
 		Rect cDebugRect = new Rect(Screen.width * 3 / 5 + 2, 100 + 2, Screen.width / 3 - 50, 100);
@@ -126,7 +126,7 @@ namespace CameraTools
 		GUIStyle inputFieldStyle;
 		GUIStyle watermarkStyle;
 		Dictionary<string, FloatInputField> inputFields;
-		List<Tuple<double, string>> debug2Messages = new List<Tuple<double, string>>();
+		List<Tuple<double, string>> debug2Messages = new();
 		void Debug2Log(string m) => debug2Messages.Add(new Tuple<double, string>(Time.time, m));
 		float lastSavedTime = 0;
 
@@ -160,11 +160,11 @@ namespace CameraTools
 
 		#region Audio Fields
 		AudioSource[] audioSources;
-		(float dopplerLevel, AudioVelocityUpdateMode velocityUpdateMode, bool bypassEffects, float spatialBlend, bool spatialize)[] originalAudioSourceDoppler;
-		HashSet<string> excludeAudioSources = new HashSet<string> { "MusicLogic", "windAS", "windHowlAS", "windTearAS", "sonicBoomAS" }; // Don't adjust music or atmospheric audio.
+		List<(int index, float dopplerLevel, AudioVelocityUpdateMode velocityUpdateMode, bool bypassEffects, bool spatialize, float spatialBlend)> originalAudioSourceSettings = new();
+		HashSet<string> excludeAudioSources = new() { "MusicLogic", "windAS", "windHowlAS", "windTearAS", "sonicBoomAS" }; // Don't adjust music or atmospheric audio.
 		bool hasSetDoppler = false;
 		[CTPersistantField] public bool useAudioEffects = true;
-		public static double speedOfSound = 330;
+		public static double speedOfSound = 340;
 		#endregion
 
 		#region Camera Shake
@@ -1543,7 +1543,7 @@ namespace CameraTools
 			if (useAudioEffects)
 			{
 				speedOfSound = 233 * MathUtils.Sqrt(1 + (FlightGlobals.getExternalTemperature(vessel.GetWorldPos3D(), vessel.mainBody) / 273.15));
-				//Debug.Log("[CameraTools]: speed of sound: " + speedOfSound);
+				// if (DEBUG) Debug.Log($"[CameraTools]: Speed of sound is {speedOfSound:G5}m/s");
 			}
 
 			if (flightCamera.Target != null) flightCamera.SetTargetNone(); // Don't go to the next vessel if the vessel is destroyed.
@@ -2280,18 +2280,16 @@ namespace CameraTools
 			}
 
 			// Debug.Log($"DEBUG Setting doppler");
-			// Debug.Log($"DEBUG audio spatializer: {AudioSettings.GetSpatializerPluginName()}"); This is an empty string, so doppler effects using Unity's built-in settings are not available.
+			// Debug.Log($"DEBUG audio spatializer: {AudioSettings.GetSpatializerPluginName()}"); // This is an empty string, so doppler effects using Unity's built-in settings are not available.
 			// Manually handling doppler effects won't work either as there's no events for newly added audioSources and no way to check when the pitch is adjusted for other reasons.
 
 			audioSources = FindObjectsOfType<AudioSource>();
-			originalAudioSourceDoppler = new (float, AudioVelocityUpdateMode, bool, float, bool)[audioSources.Length];
-			// Debug.Log($"DEBUG AudioSource pitch: "+ string.Join(", ", audioSources.Where(a => a.isPlaying).Select(a => $"{a.name}: {a.pitch}")));
+			// Debug.Log("CameraTools.DEBUG audioSources: " + string.Join(", ", audioSources.Select(a => a.name)));
+			originalAudioSourceSettings.Clear();
 
 			for (int i = 0; i < audioSources.Length; i++)
 			{
-				// Debug.Log("CameraTools.DEBUG audioSources: " + string.Join(", ", audioSources.Select(a => a.name)));
 				if (excludeAudioSources.Contains(audioSources[i].name)) continue;
-				originalAudioSourceDoppler[i] = (audioSources[i].dopplerLevel, audioSources[i].velocityUpdateMode, audioSources[i].bypassEffects, audioSources[i].spatialBlend, audioSources[i].spatialize);
 
 				if (!includeActiveVessel)
 				{
@@ -2299,19 +2297,27 @@ namespace CameraTools
 					if (p && p.vessel.isActiveVessel) continue;
 				}
 
-				audioSources[i].dopplerLevel = 1;
-				audioSources[i].velocityUpdateMode = AudioVelocityUpdateMode.Fixed;
-				audioSources[i].bypassEffects = false;
-				audioSources[i].spatialBlend = 1;
-				audioSources[i].spatialize = true;
-
 				var part = audioSources[i].gameObject.GetComponentInParent<Part>();
-				if (part != null && part.vessel != null && !ignoreVesselTypesForAudio.Contains(part.vessel.vesselType))
+				if (part != null)
 				{
-					CTPartAudioController pa = audioSources[i].gameObject.GetComponent<CTPartAudioController>();
-					if (pa == null) pa = audioSources[i].gameObject.AddComponent<CTPartAudioController>();
-					pa.audioSource = audioSources[i];
-					// if (DEBUG && audioSources[i].isPlaying) Debug.Log($"DEBUG adding part audio controller for {part} on {part.vessel.vesselName} for audiosource {i} ({audioSources[i].name}) with priority: {audioSources[i].priority}, doppler level {audioSources[i].dopplerLevel}, rollOff: {audioSources[i].rolloffMode}, spatialize: {audioSources[i].spatialize}, spatial blend: {audioSources[i].spatialBlend}, min/max dist:{audioSources[i].minDistance}/{audioSources[i].maxDistance}, clip: {audioSources[i].clip?.name}, output group: {audioSources[i].outputAudioMixerGroup}");
+					if (part.vessel != null && !ignoreVesselTypesForAudio.Contains(part.vessel.vesselType))
+					{
+						CTPartAudioController pa = audioSources[i].gameObject.GetComponent<CTPartAudioController>();
+						if (pa == null) pa = audioSources[i].gameObject.AddComponent<CTPartAudioController>();
+						pa.audioSource = audioSources[i];
+						pa.StoreOriginalSettings();
+						pa.ApplyEffects();
+						// if (DEBUG && audioSources[i].isPlaying) Debug.Log($"DEBUG adding part audio controller for {part} on {part.vessel.vesselName} for audiosource {i} ({audioSources[i].name}) with priority: {audioSources[i].priority}, doppler level {audioSources[i].dopplerLevel}, rollOff: {audioSources[i].rolloffMode}, spatialize: {audioSources[i].spatialize}, spatial blend: {audioSources[i].spatialBlend}, min/max dist:{audioSources[i].minDistance}/{audioSources[i].maxDistance}, clip: {audioSources[i].clip?.name}, output group: {audioSources[i].outputAudioMixerGroup}");
+					}
+				}
+				else // Set/reset part audio separately from others.
+				{
+					originalAudioSourceSettings.Add((i, audioSources[i].dopplerLevel, audioSources[i].velocityUpdateMode, audioSources[i].bypassEffects, audioSources[i].spatialize, audioSources[i].spatialBlend));
+					audioSources[i].dopplerLevel = 1;
+					audioSources[i].velocityUpdateMode = AudioVelocityUpdateMode.Fixed;
+					audioSources[i].bypassEffects = false;
+					audioSources[i].spatialize = true;
+					audioSources[i].spatialBlend = 1;
 				}
 			}
 
@@ -2325,14 +2331,21 @@ namespace CameraTools
 				return;
 			}
 
+			foreach (var (index, dopplerLevel, velocityUpdateMode, bypassEffects, spatialize, spatialBlend) in originalAudioSourceSettings) // Set/reset part audio separately from others.
+			{
+				if (audioSources[index] == null) continue;
+				audioSources[index].dopplerLevel = dopplerLevel;
+				audioSources[index].velocityUpdateMode = velocityUpdateMode;
+				audioSources[index].bypassEffects = bypassEffects;
+				audioSources[index].spatialBlend = spatialBlend;
+				audioSources[index].spatialize = spatialize;
+			}
 			for (int i = 0; i < audioSources.Length; i++)
 			{
 				if (audioSources[i] == null || excludeAudioSources.Contains(audioSources[i].name)) continue;
-				audioSources[i].dopplerLevel = originalAudioSourceDoppler[i].dopplerLevel;
-				audioSources[i].velocityUpdateMode = originalAudioSourceDoppler[i].velocityUpdateMode;
-				audioSources[i].bypassEffects = originalAudioSourceDoppler[i].bypassEffects;
-				audioSources[i].spatialBlend = originalAudioSourceDoppler[i].spatialBlend;
-				audioSources[i].spatialize = originalAudioSourceDoppler[i].spatialize;
+				CTPartAudioController pa = audioSources[i].gameObject.GetComponent<CTPartAudioController>();
+				if (pa == null) continue;
+				pa.RestoreOriginalSettings();
 			}
 
 			hasSetDoppler = false;
