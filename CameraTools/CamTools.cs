@@ -2254,7 +2254,7 @@ namespace CameraTools
 				}
 				if (ignoreVesselTypesForAudio.Contains(vessel.vesselType)) continue;
 
-				vessel.gameObject.AddComponent<CTAtmosphericAudioController>(); // Always add, since they get removed with OnResetCTools triggers.
+				vessel.gameObject.AddComponent<CTAtmosphericAudioController>(); // Always add, since they get removed when OnResetCTools triggers.
 			}
 		}
 
@@ -2285,8 +2285,7 @@ namespace CameraTools
 				{
 					if (part.vessel != null && !ignoreVesselTypesForAudio.Contains(part.vessel.vesselType))
 					{
-						CTPartAudioController pa = audioSources[i].gameObject.GetComponent<CTPartAudioController>();
-						if (pa == null) pa = audioSources[i].gameObject.AddComponent<CTPartAudioController>();
+						var pa = audioSources[i].gameObject.AddComponent<CTPartAudioController>(); // Always add, since they get removed when OnResetCTools triggers.
 						pa.audioSource = audioSources[i];
 						pa.StoreOriginalSettings();
 						pa.ApplyEffects();
