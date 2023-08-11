@@ -25,8 +25,6 @@ namespace CameraTools
 				return;
 			}
 
-			StoreOriginalSettings();
-			ApplyEffects();
 			CamTools.OnResetCTools += OnResetCTools;
 		}
 
@@ -44,6 +42,7 @@ namespace CameraTools
 				return;
 			}
 
+			if (!origSettingsStored) return; // Do nothing until the original settings get stored.
 
 			float angleToCam = Vector3.Angle(vessel.srf_velocity, FlightCamera.fetch.mainCamera.transform.position - vessel.transform.position);
 			angleToCam = Mathf.Clamp(angleToCam, 1, 180);
@@ -74,6 +73,7 @@ namespace CameraTools
 		}
 
 		#region Store/Restore Original settings.
+		bool origSettingsStored = false;
 		// Any settings that get adjusted in ApplyEffects should be added here.
 		float origMinDist;
 		float origMaxDist;
@@ -88,6 +88,7 @@ namespace CameraTools
 		public void StoreOriginalSettings()
 		{
 			if (audioSource == null) return;
+			origSettingsStored = true;
 			origMinDist = audioSource.minDistance;
 			origMaxDist = audioSource.maxDistance;
 			origBypassEffects = audioSource.bypassEffects;
@@ -101,7 +102,7 @@ namespace CameraTools
 
 		public void RestoreOriginalSettings()
 		{
-			if (audioSource == null) return;
+			if (!origSettingsStored || audioSource == null) return;
 			audioSource.minDistance = origMinDist;
 			audioSource.maxDistance = origMaxDist;
 			audioSource.bypassEffects = origBypassEffects;
