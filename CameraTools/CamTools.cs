@@ -163,6 +163,7 @@ namespace CameraTools
 		List<(int index, float dopplerLevel, AudioVelocityUpdateMode velocityUpdateMode, bool bypassEffects, bool spatialize, float spatialBlend)> originalAudioSourceSettings = new();
 		HashSet<string> excludeAudioSources = new() { "MusicLogic", "windAS", "windHowlAS", "windTearAS", "sonicBoomAS" }; // Don't adjust music or atmospheric audio.
 		bool hasSetDoppler = false;
+		bool hasSpatializerPlugin = false;
 		[CTPersistantField] public bool useAudioEffects = true;
 		public static double speedOfSound = 340;
 		#endregion
@@ -381,6 +382,8 @@ namespace CameraTools
 			bdArmory = BDArmory.instance;
 			betterTimeWarp = BetterTimeWarp.instance;
 			timeControl = TimeControl.instance;
+			hasSpatializerPlugin = !string.IsNullOrEmpty(AudioSettings.GetSpatializerPluginName()); // Check for a spatializer plugin, otherwise doppler effects won't work.
+			if (DEBUG) { Debug.Log($"[CameraTools]: Spatializer plugin {(hasSpatializerPlugin ? $"found: {AudioSettings.GetSpatializerPluginName()}" : "not found, doppler effects disabled.")}"); }
 
 			if (FlightGlobals.ActiveVessel != null)
 			{
@@ -2240,10 +2243,7 @@ namespace CameraTools
 		#region Atmospherics
 		void AddAtmoAudioControllers(bool includeActiveVessel)
 		{
-			if (!useAudioEffects)
-			{
-				return;
-			}
+			if (!useAudioEffects) return;
 
 			foreach (var vessel in FlightGlobals.Vessels)
 			{
@@ -2260,15 +2260,7 @@ namespace CameraTools
 
 		void SetDoppler(bool includeActiveVessel)
 		{
-			if (hasSetDoppler)
-			{
-				return;
-			}
-
-			if (!useAudioEffects)
-			{
-				return;
-			}
+			if (hasSetDoppler || !useAudioEffects || !hasSpatializerPlugin) return;
 
 			// Debug.Log($"DEBUG Setting doppler");
 			// Debug.Log($"DEBUG audio spatializer: {AudioSettings.GetSpatializerPluginName()}"); // This is an empty string, so doppler effects using Unity's built-in settings are not available.
@@ -2317,10 +2309,7 @@ namespace CameraTools
 
 		void ResetDoppler()
 		{
-			if (!hasSetDoppler)
-			{
-				return;
-			}
+			if (!hasSetDoppler) return;
 
 			foreach (var (index, dopplerLevel, velocityUpdateMode, bypassEffects, spatialize, spatialBlend) in originalAudioSourceSettings) // Set/reset part audio separately from others.
 			{
