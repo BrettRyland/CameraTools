@@ -120,6 +120,7 @@ namespace CameraTools
 				srfSpeed = Mathf.Min(srfSpeed, 550f);
 				float angleToCam = Mathf.Clamp(Vector3.Angle(vessel.srf_velocity, CamTools.flightCamera.transform.position - vessel.transform.position), 1, 180);
 
+				// Some comments on what the lagAudioFactor and waveFrontFactor are based on would have been nice...
 				float lagAudioFactor = 75000 / (Vector3.Distance(vessel.transform.position, CamTools.flightCamera.transform.position) * srfSpeed * angleToCam / 90);
 				lagAudioFactor = Mathf.Clamp(lagAudioFactor * lagAudioFactor * lagAudioFactor, 0, 4);
 				lagAudioFactor += srfSpeed / 230;
@@ -163,6 +164,8 @@ namespace CameraTools
 				lagAudioFactor *= waveFrontFactor;
 
 				float sqrAccel = (float)vessel.acceleration.sqrMagnitude;
+				float vesselMass = vessel.GetTotalMass();
+				float dynamicPressurekPa = (float)vessel.dynamicPressurekPa;
 
 				//windloop
 				if (!windAudioSource.isPlaying)
@@ -171,11 +174,10 @@ namespace CameraTools
 					// Debug.Log("[CameraTools]: vessel dynamic pressure: " + vessel.dynamicPressurekPa);
 					if (!windAudioSource.isPlaying) { SleepFor(1f); return; }
 				}
-				float pressureFactor = Mathf.Clamp01((float)vessel.dynamicPressurekPa / 50f);
-				float massFactor = Mathf.Clamp01(vessel.GetTotalMass() / 60f);
+				float pressureFactor = Mathf.Clamp01(dynamicPressurekPa / 50f);
+				float massFactor = Mathf.Clamp01(vesselMass / 60f);
 				float gFactor = Mathf.Clamp(sqrAccel / 225, 0, 1.5f);
 				windAudioSource.volume = massFactor * pressureFactor * gFactor * lagAudioFactor;
-
 
 				//windhowl
 				if (!windHowlAudioSource.isPlaying)
@@ -183,8 +185,8 @@ namespace CameraTools
 					windHowlAudioSource.Play();
 					if (!windHowlAudioSource.isPlaying) { SleepFor(1f); return; }
 				}
-				float pressureFactor2 = Mathf.Clamp01((float)vessel.dynamicPressurekPa / 20f);
-				float massFactor2 = Mathf.Clamp01(vessel.GetTotalMass() / 30f);
+				float pressureFactor2 = Mathf.Clamp01(dynamicPressurekPa / 20f);
+				float massFactor2 = Mathf.Clamp01(vesselMass / 30f);
 				windHowlAudioSource.volume = pressureFactor2 * massFactor2 * lagAudioFactor;
 				windHowlAudioSource.maxDistance = Mathf.Clamp(lagAudioFactor * 2500, windTearAudioSource.minDistance, 16000);
 
@@ -194,10 +196,10 @@ namespace CameraTools
 					windTearAudioSource.Play();
 					if (!windTearAudioSource.isPlaying) { SleepFor(1f); return; }
 				}
-				float pressureFactor3 = Mathf.Clamp01((float)vessel.dynamicPressurekPa / 40f);
-				float massFactor3 = Mathf.Clamp01(vessel.GetTotalMass() / 10f);
+				float pressureFactor3 = Mathf.Clamp01(dynamicPressurekPa / 40f);
+				float massFactor3 = Mathf.Clamp01(vesselMass / 10f);
 				//float gFactor3 = Mathf.Clamp(sqrAccel / 325, 0.25f, 1f);
-				windTearAudioSource.volume = pressureFactor3 * massFactor3;
+				windTearAudioSource.volume = pressureFactor3 * massFactor3 * lagAudioFactor;
 
 				windTearAudioSource.minDistance = lagAudioFactor * 1;
 				windTearAudioSource.maxDistance = Mathf.Clamp(lagAudioFactor * 2500, windTearAudioSource.minDistance, 16000);
