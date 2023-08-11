@@ -1,3 +1,7 @@
+v1.29.1
+Improvements / Bugfixes:
+- Fix wind-tear audio being overly loud from recent tweaks.
+
 v1.29.0
 Improvements / Bugfixes:
 - Add a configurable movement threshold to activating free-look mode (default: 0.1).
