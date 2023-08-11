@@ -117,7 +117,7 @@ namespace CameraTools
 
 		public void ApplyEffects()
 		{
-			if (audioSource == null) return;
+			if (!origSettingsStored || audioSource == null) return;
 			audioSource.bypassEffects = false;
 			audioSource.spatialize = true;
 			audioSource.spatialBlend = 1;
