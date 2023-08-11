@@ -1,28 +1,29 @@
 ﻿using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace CameraTools
 {
 	public class CTAtmosphericAudioController : MonoBehaviour
 	{
-		static Dictionary<string, AudioClip> audioClips;
+		static readonly Dictionary<string, AudioClip> audioClips = new();
 
 		AudioSource windAudioSource;
 		AudioSource windHowlAudioSource;
 		AudioSource windTearAudioSource;
 
 		AudioSource sonicBoomSource;
+		AudioSource delayedSonicBoomSource;
 
 		Vessel vessel;
 
-		bool playedBoom = false;
+		bool playedBoom = true;
 		bool sleep = false; // For when the SoundManager freaks out about running out of virtual channels.
 		float startedSleepAt = 0f;
 		float sleepDuration = 0f;
 
 		void Awake()
 		{
-			if (audioClips is null) audioClips = new Dictionary<string, AudioClip>();
 			vessel = GetComponent<Vessel>();
 
 			windAudioSource = new GameObject("windAS").AddComponent<AudioSource>();
@@ -86,21 +87,30 @@ namespace CameraTools
 			sonicBoomSource.Stop();
 			sonicBoomSource.spatialBlend = 1;
 			sonicBoomSource.transform.parent = vessel.transform;
+			delayedSonicBoomSource = Instantiate(sonicBoomSource);
 
-			float angleToCam = Vector3.Angle(vessel.srf_velocity, FlightCamera.fetch.mainCamera.transform.position - vessel.transform.position);
-			angleToCam = Mathf.Clamp(angleToCam, 1, 180);
-			if (vessel.srfSpeed / (angleToCam) < 3.67f)
-			{
-				playedBoom = true;
-			}
-
+			Reset();
 			CamTools.OnResetCTools += OnResetCTools;
+		}
+
+		/// <summary>
+		/// Reset some stuff in case we're not a new module.
+		/// Also helps when cleaning up to prevent extra booming.
+		/// </summary>
+		void Reset()
+		{
+			playedBoom = true; // Default to true so that it doesn't play accidentally.
+			if (windAudioSource.isPlaying) windAudioSource.Stop();
+			if (windHowlAudioSource.isPlaying) windHowlAudioSource.Stop();
+			if (windTearAudioSource.isPlaying) windTearAudioSource.Stop();
+			if (sonicBoomSource.isPlaying) sonicBoomSource.Stop();
+			if (delayedSonicBoomSource.isPlaying) delayedSonicBoomSource.Stop();
 		}
 
 		void FixedUpdate()
 		{
 			if (vessel == null || !vessel.loaded || !vessel.isActiveAndEnabled) return; // Vessel is dead or not ready.
-			if (FlightCamera.fetch == null || FlightCamera.fetch.mainCamera == null) return; // Flight camera is broken.
+			if (CamTools.flightCamera == null) return; // Flight camera is broken.
 			if (FlightGlobals.currentMainBody != null && vessel.altitude > FlightGlobals.currentMainBody.atmosphereDepth) return; // Vessel is outside the atmosphere.
 			if (sleep && Time.time - startedSleepAt < sleepDuration) return;
 			sleep = false;
@@ -108,37 +118,45 @@ namespace CameraTools
 			{
 				float srfSpeed = (float)vessel.srfSpeed;
 				srfSpeed = Mathf.Min(srfSpeed, 550f);
-				float angleToCam = Vector3.Angle(vessel.srf_velocity, FlightCamera.fetch.mainCamera.transform.position - vessel.transform.position);
-				angleToCam = Mathf.Clamp(angleToCam, 1, 180);
+				float angleToCam = Mathf.Clamp(Vector3.Angle(vessel.srf_velocity, CamTools.flightCamera.transform.position - vessel.transform.position), 1, 180);
 
-
-				float lagAudioFactor = (75000 / (Vector3.Distance(vessel.transform.position, FlightCamera.fetch.mainCamera.transform.position) * srfSpeed * angleToCam / 90));
+				float lagAudioFactor = 75000 / (Vector3.Distance(vessel.transform.position, CamTools.flightCamera.transform.position) * srfSpeed * angleToCam / 90);
 				lagAudioFactor = Mathf.Clamp(lagAudioFactor * lagAudioFactor * lagAudioFactor, 0, 4);
 				lagAudioFactor += srfSpeed / 230;
 
-				float waveFrontFactor = ((3.67f * angleToCam) / srfSpeed);
+				float waveFrontFactor = 3.67f * angleToCam / srfSpeed;
 				waveFrontFactor = Mathf.Clamp(waveFrontFactor * waveFrontFactor * waveFrontFactor, 0, 2);
-
 
 				if (vessel.srfSpeed > CamTools.speedOfSound)
 				{
-					waveFrontFactor = (srfSpeed / (angleToCam) < 3.67f) ? waveFrontFactor + ((srfSpeed / (float)CamTools.speedOfSound) * waveFrontFactor) : 0;
-					if (waveFrontFactor > 0)
+					waveFrontFactor = (srfSpeed / angleToCam < 3.67f) ? waveFrontFactor + srfSpeed / (float)CamTools.speedOfSound * waveFrontFactor : 0;
+
+					var cameraOffset = CamTools.flightCamera.transform.position - vessel.transform.position; // d
+					var dDotV = Vector3.Dot(vessel.srf_vel_direction, cameraOffset); // dot(d, v) = |d| * |v| * cos(θ) with normalised v
+					var dDotVsqr = dDotV * dDotV;
+					var sinAlpha = CamTools.speedOfSound / vessel.srfSpeed; // sin(α) = Vsnd / |v|
+					var threshold = cameraOffset.sqrMagnitude * (1f - sinAlpha * sinAlpha); // θ > π/2 && cos²(θ) > cos²(α)
+					if (dDotV < 0 && dDotVsqr > threshold) // Behind the wave front.
 					{
 						if (!playedBoom)
 						{
-							sonicBoomSource.transform.position = vessel.transform.position + (-vessel.srf_velocity);
-							sonicBoomSource.PlayOneShot(sonicBoomSource.clip);
+							sonicBoomSource.transform.position = vessel.transform.position - vessel.srf_velocity * cameraOffset.magnitude / CamTools.speedOfSound;
+							delayedSonicBoomSource.transform.position = sonicBoomSource.transform.position;
+							sonicBoomSource.Play();
+							delayedSonicBoomSource.PlayDelayed(vessel.vesselSize.z / (float)vessel.srfSpeed); // Sonic booms are generally N-wave shaped, giving a double boom. (vesselSize.z is vessel length.)
+							if (CamTools.DEBUG) Debug.Log($"[CameraTools]: Behind the wavefront, playing N-wave sonic boom with interval {vessel.vesselSize.z / (float)vessel.srfSpeed:G3}s for {vessel.vesselName}.");
+							playedBoom = true;
 						}
-						playedBoom = true;
 					}
-					else
+					else if (dDotV > 0 || dDotVsqr < threshold * 0.9f) // In front of the wave front (with enough tolerance to not immediately trigger again).
 					{
-
+						if (CamTools.DEBUG && playedBoom) Debug.Log($"[CameraTools]: In front of the wavefront, resetting sonic boom trigger for {vessel.vesselName}.");
+						playedBoom = false;
 					}
 				}
-				else if (CamTools.speedOfSound / (angleToCam) < 3.67f)
+				else if (vessel.srfSpeed < CamTools.speedOfSound * 0.95f) // Subsonic (with hysteresis).
 				{
+					if (CamTools.DEBUG && !playedBoom) Debug.Log($"[CameraTools]: Disabling sonic boom trigger for {vessel.vesselName} due to being subsonic.");
 					playedBoom = true;
 				}
 
@@ -215,6 +233,7 @@ namespace CameraTools
 
 		void OnResetCTools()
 		{
+			Reset(); // Prevent booming when switching vessels/restarting camera modes.
 			Destroy(this);
 		}
 

@@ -3,6 +3,7 @@ Improvements / Bugfixes:
 - If the camera parent gets stolen, automatically steal it back if it's the original camera parent (due to spawning a kerbal, BDA MML, etc.).
 - Allow customising the maximum value of the zoom, auto zoom, dogfight distance and dogfight offsets in the settings.cfg.
 - Optimisations to how part audio effects are managed.
+- Rework the sonic boom calculations, allowing them to reset and removing the booming when switching vessels/restarting camera modes.
 
 v1.28.0
 Improvements / Bugfixes:

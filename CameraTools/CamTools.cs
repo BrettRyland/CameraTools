@@ -15,6 +15,7 @@ namespace CameraTools
 	{
 		#region Fields
 		public static CamTools fetch;
+		public static FlightCamera flightCamera;
 
 		string Version = "unknown";
 		GameObject cameraParent;
@@ -31,7 +32,6 @@ namespace CameraTools
 		float origDistance;
 		FlightCamera.Modes origMode;
 		float origFov = 60;
-		FlightCamera flightCamera;
 		Part camTarget = null;
 		Vector3 cameraUp = Vector3.up;
 		public bool cameraToolActive = false;
@@ -164,6 +164,7 @@ namespace CameraTools
 		HashSet<string> excludeAudioSources = new() { "MusicLogic", "windAS", "windHowlAS", "windTearAS", "sonicBoomAS" }; // Don't adjust music or atmospheric audio.
 		bool hasSetDoppler = false;
 		bool hasSpatializerPlugin = false;
+		[CTPersistantField] public static bool disregardSpatializerCheck = false;
 		[CTPersistantField] public bool useAudioEffects = true;
 		public static double speedOfSound = 340;
 		#endregion
@@ -382,7 +383,7 @@ namespace CameraTools
 			bdArmory = BDArmory.instance;
 			betterTimeWarp = BetterTimeWarp.instance;
 			timeControl = TimeControl.instance;
-			hasSpatializerPlugin = !string.IsNullOrEmpty(AudioSettings.GetSpatializerPluginName()); // Check for a spatializer plugin, otherwise doppler effects won't work.
+			hasSpatializerPlugin = disregardSpatializerCheck || !string.IsNullOrEmpty(AudioSettings.GetSpatializerPluginName()); // Check for a spatializer plugin, otherwise doppler effects won't work.
 			if (DEBUG) { Debug.Log($"[CameraTools]: Spatializer plugin {(hasSpatializerPlugin ? $"found: {AudioSettings.GetSpatializerPluginName()}" : "not found, doppler effects disabled.")}"); }
 
 			if (FlightGlobals.ActiveVessel != null)
@@ -1386,7 +1387,7 @@ namespace CameraTools
 					if (camTarget == null) // Sometimes the vessel doesn't have the reference transform part set up. It ought to be the root part usually.
 						camTarget = FlightGlobals.ActiveVessel.rootPart;
 				}
-				hasTarget = (camTarget != null) ? true : false;
+				hasTarget = camTarget != null;
 				lastVesselCoM = vessel.CoM;
 
 				// Camera position.
@@ -2253,8 +2254,7 @@ namespace CameraTools
 				}
 				if (ignoreVesselTypesForAudio.Contains(vessel.vesselType)) continue;
 
-				if (vessel.gameObject.GetComponent<CTAtmosphericAudioController>() == null)
-				{ vessel.gameObject.AddComponent<CTAtmosphericAudioController>(); }
+				vessel.gameObject.AddComponent<CTAtmosphericAudioController>(); // Always add, since they get removed with OnResetCTools triggers.
 			}
 		}
 
