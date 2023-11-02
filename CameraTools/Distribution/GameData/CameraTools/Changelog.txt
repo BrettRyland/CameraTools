@@ -1,3 +1,7 @@
+v1.29.2
+Improvements / Bugfixes:
+- Fix an AudioSource memory leak.
+
 v1.29.1
 Improvements / Bugfixes:
 - Fix wind-tear audio being overly loud from recent tweaks.
