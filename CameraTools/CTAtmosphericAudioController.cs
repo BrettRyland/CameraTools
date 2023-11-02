@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace CameraTools
@@ -227,6 +226,7 @@ namespace CameraTools
 		void OnDestroy()
 		{
 			if (sonicBoomSource) Destroy(sonicBoomSource.gameObject);
+			if (delayedSonicBoomSource) Destroy(delayedSonicBoomSource.gameObject);
 			if (windAudioSource) Destroy(windAudioSource.gameObject);
 			if (windHowlAudioSource) Destroy(windHowlAudioSource.gameObject);
 			if (windTearAudioSource) Destroy(windTearAudioSource.gameObject);
