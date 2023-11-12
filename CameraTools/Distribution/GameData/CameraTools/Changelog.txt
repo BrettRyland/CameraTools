@@ -1,3 +1,6 @@
+Improvements / Bugfixes:
+- Fix aero FX not being applied and provide a toggle to disable them.
+
 v1.29.2
 Improvements / Bugfixes:
 - Fix an AudioSource memory leak.

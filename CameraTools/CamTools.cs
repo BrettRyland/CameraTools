@@ -28,6 +28,7 @@ namespace CameraTools
 		Vector3 origLocalPosition;
 		Quaternion origLocalRotation;
 		Transform origParent;
+		Vector3 origParentPosition;
 		float origNearClip;
 		float origDistance;
 		FlightCamera.Modes origMode;
@@ -126,7 +127,7 @@ namespace CameraTools
 		GUIStyle inputFieldStyle;
 		GUIStyle watermarkStyle;
 		Dictionary<string, FloatInputField> inputFields;
-		List<Tuple<double, string>> debug2Messages = new();
+		readonly List<Tuple<double, string>> debug2Messages = new();
 		void Debug2Log(string m) => debug2Messages.Add(new Tuple<double, string>(Time.time, m));
 		float lastSavedTime = 0;
 
@@ -166,6 +167,7 @@ namespace CameraTools
 		bool hasSpatializerPlugin = false;
 		[CTPersistantField] public static bool disregardSpatializerCheck = false;
 		[CTPersistantField] public bool useAudioEffects = true;
+		[CTPersistantField] public bool enableVFX = true;
 		public static double speedOfSound = 340;
 		#endregion
 
@@ -538,26 +540,26 @@ namespace CameraTools
 							else if (!inHighWarp && useObtVel != wasUsingObtVel) // Only needed when crossing the boundary.
 								floatingKrakenAdjustment += ((useObtVel ? vessel.obt_velocity : vessel.srf_velocity) - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime;
 							cameraParent.transform.position += floatingKrakenAdjustment;
-							if (DEBUG2 && !GameIsPaused)
-							{
-								var cmb = FlightGlobals.currentMainBody;
-								Debug2Log("situation: " + vessel.situation);
-								Debug2Log("warp mode: " + TimeWarp.WarpMode + ", warp factor: " + TimeWarp.CurrentRate);
-								Debug2Log($"radius: {cmb.Radius}, radiusAtmoFactor: {cmb.radiusAtmoFactor}, atmo: {cmb.atmosphere}, atmoDepth: {cmb.atmosphereDepth}");
-								Debug2Log("speed: " + vessel.Speed().ToString("G3") + ", vel: " + vessel.Velocity().ToString("G3"));
-								Debug2Log("offset from vessel CoM: " + (flightCamera.transform.position - vessel.CoM).ToString("G3"));
-								Debug2Log("camParentPos - flightCamPos: " + (cameraParent.transform.position - flightCamera.transform.position).ToString("G3"));
-								Debug2Log($"inOrbit: {inOrbit}, inHighWarp: {inHighWarp}, useObtVel: {useObtVel}");
-								Debug2Log($"altitude: {vessel.altitude}");
-								Debug2Log("vessel velocity: " + vessel.Velocity().ToString("G3") + ", Kraken velocity: " + Krakensbane.GetFrameVelocity().ToString("G3"));
-								Debug2Log("(vv - kv): " + (vessel.Velocity() - Krakensbane.GetFrameVelocity()).ToString("G3") + ", ΔKv: " + Krakensbane.GetLastCorrection().ToString("G3"));
-								Debug2Log("(vv - kv)*Δt: " + ((vessel.Velocity() - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime).ToString("G3"));
-								Debug2Log("(sv - kv)*Δt: " + ((vessel.srf_velocity - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime).ToString("G3"));
-								Debug2Log("floating origin offset: " + FloatingOrigin.Offset.ToString("G3") + ", offsetNonKB: " + FloatingOrigin.OffsetNonKrakensbane.ToString("G3"));
-								Debug2Log($"ΔKv*Δt: {(Krakensbane.GetLastCorrection() * TimeWarp.fixedDeltaTime).ToString("G3")}");
-								Debug2Log($"onKb - kv*Δt: {(FloatingOrigin.OffsetNonKrakensbane - Krakensbane.GetFrameVelocity() * TimeWarp.fixedDeltaTime).ToString("G3")}");
-								Debug2Log("floatingKrakenAdjustment: " + floatingKrakenAdjustment.ToString("G3"));
-							}
+							// if (DEBUG2 && !GameIsPaused)
+							// {
+							// 	var cmb = FlightGlobals.currentMainBody;
+							// 	Debug2Log("situation: " + vessel.situation);
+							// 	Debug2Log("warp mode: " + TimeWarp.WarpMode + ", warp factor: " + TimeWarp.CurrentRate);
+							// 	Debug2Log($"radius: {cmb.Radius}, radiusAtmoFactor: {cmb.radiusAtmoFactor}, atmo: {cmb.atmosphere}, atmoDepth: {cmb.atmosphereDepth}");
+							// 	Debug2Log("speed: " + vessel.Speed().ToString("G3") + ", vel: " + vessel.Velocity().ToString("G3"));
+							// 	Debug2Log("offset from vessel CoM: " + (flightCamera.transform.position - vessel.CoM).ToString("G3"));
+							// 	Debug2Log("camParentPos - flightCamPos: " + (cameraParent.transform.position - flightCamera.transform.position).ToString("G3"));
+							// 	Debug2Log($"inOrbit: {inOrbit}, inHighWarp: {inHighWarp}, useObtVel: {useObtVel}");
+							// 	Debug2Log($"altitude: {vessel.altitude}");
+							// 	Debug2Log("vessel velocity: " + vessel.Velocity().ToString("G3") + ", Kraken velocity: " + Krakensbane.GetFrameVelocity().ToString("G3"));
+							// 	Debug2Log("(vv - kv): " + (vessel.Velocity() - Krakensbane.GetFrameVelocity()).ToString("G3") + ", ΔKv: " + Krakensbane.GetLastCorrection().ToString("G3"));
+							// 	Debug2Log("(vv - kv)*Δt: " + ((vessel.Velocity() - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime).ToString("G3"));
+							// 	Debug2Log("(sv - kv)*Δt: " + ((vessel.srf_velocity - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime).ToString("G3"));
+							// 	Debug2Log("floating origin offset: " + FloatingOrigin.Offset.ToString("G3") + ", offsetNonKB: " + FloatingOrigin.OffsetNonKrakensbane.ToString("G3"));
+							// 	Debug2Log($"ΔKv*Δt: {(Krakensbane.GetLastCorrection() * TimeWarp.fixedDeltaTime).ToString("G3")}");
+							// 	Debug2Log($"onKb - kv*Δt: {(FloatingOrigin.OffsetNonKrakensbane - Krakensbane.GetFrameVelocity() * TimeWarp.fixedDeltaTime).ToString("G3")}");
+							// 	Debug2Log("floatingKrakenAdjustment: " + floatingKrakenAdjustment.ToString("G3"));
+							// }
 							break;
 						}
 					case ToolModes.StationaryCamera:
@@ -760,6 +762,7 @@ namespace CameraTools
 					default:
 						break;
 				}
+				if (enableVFX) origParent.position = cameraParent.transform.position; // KSP's aero FX are only enabled when close to the origParent's position.
 			}
 		}
 
@@ -769,6 +772,7 @@ namespace CameraTools
 			if (!FlightGlobals.ready || GameIsPaused) return;
 			if (CameraManager.Instance.currentCameraMode != CameraManager.CameraMode.Flight) return;
 			if (MapView.MapIsEnabled) return; // Don't do anything in map mode.
+
 			if (DEBUG2 && !GameIsPaused) debug2Messages.Clear();
 
 			if (cameraToolActive)
@@ -1053,7 +1057,7 @@ namespace CameraTools
 				dogfightLastTarget = true;
 				dogfightLastTargetVelocity = Vector3.zero;
 				dogfightLastTargetPosition = bdArmory.GetCentroid();
-				if (DEBUG2 && !GameIsPaused) Debug2Log($"Centroid: {dogfightLastTargetPosition:G3}");
+				// if (DEBUG2 && !GameIsPaused) Debug2Log($"Centroid: {dogfightLastTargetPosition:G3}");
 			}
 			else if (dogfightTarget)
 			{
@@ -1120,15 +1124,15 @@ namespace CameraTools
 			}
 			if (DEBUG2 && !GameIsPaused)
 			{
-				Debug2Log("time scale: " + Time.timeScale.ToString("G3") + ", Δt: " + Time.fixedDeltaTime.ToString("G3"));
-				Debug2Log("offsetDirection: " + offsetDirectionX.ToString("G3"));
-				Debug2Log("target offset: " + ((vessel.CoM - dogfightLastTargetPosition).normalized * dogfightDistance).ToString("G4"));
-				Debug2Log("xOff: " + (dogfightOffsetX * offsetDirectionX).ToString("G3"));
-				Debug2Log("yOff: " + (dogfightOffsetY * dogfightCameraRollUp).ToString("G3"));
-				Debug2Log("camPos - vessel.CoM: " + (camPos - vessel.CoM).ToString("G3"));
-				Debug2Log("localCamPos: " + localCamPos.ToString("G3") + ", " + cameraTransform.localPosition.ToString("G3"));
-				Debug2Log($"lerp momentum: {dogfightLerpMomentum:G3}");
-				Debug2Log($"lerp delta: {dogfightLerpDelta:G3}");
+				// Debug2Log("time scale: " + Time.timeScale.ToString("G3") + ", Δt: " + Time.fixedDeltaTime.ToString("G3"));
+				// Debug2Log("offsetDirection: " + offsetDirectionX.ToString("G3"));
+				// Debug2Log("target offset: " + ((vessel.CoM - dogfightLastTargetPosition).normalized * dogfightDistance).ToString("G4"));
+				// Debug2Log("xOff: " + (dogfightOffsetX * offsetDirectionX).ToString("G3"));
+				// Debug2Log("yOff: " + (dogfightOffsetY * dogfightCameraRollUp).ToString("G3"));
+				// Debug2Log("camPos - vessel.CoM: " + (camPos - vessel.CoM).ToString("G3"));
+				// Debug2Log("localCamPos: " + localCamPos.ToString("G3") + ", " + cameraTransform.localPosition.ToString("G3"));
+				// Debug2Log($"lerp momentum: {dogfightLerpMomentum:G3}");
+				// Debug2Log($"lerp delta: {dogfightLerpDelta:G3}");
 			}
 
 			//rotation
@@ -1340,9 +1344,10 @@ namespace CameraTools
 				{
 					var cameraRadarAltitude = GetRadarAltitudeAtPos(cameraTransform.position);
 					if (cameraRadarAltitude < 2f && (vessel.Landed || cameraRadarAltitude > -dogfightDistance)) cameraTransform.position += (2f - cameraRadarAltitude) * cameraUp; // Prevent viewing from under the surface if near the surface.
-					if (DEBUG2 && !GameIsPaused) Debug2Log($"camera altitude: {GetRadarAltitudeAtPos(cameraTransform.position):G3} ({cameraRadarAltitude:G3})");
+
+					// if (DEBUG2 && !GameIsPaused) Debug2Log($"camera altitude: {GetRadarAltitudeAtPos(cameraTransform.position):G3} ({cameraRadarAltitude:G3})");
 				}
-				else if (DEBUG2 && !GameIsPaused) Debug2Log($"vessel not landed");
+				// else if (DEBUG2 && !GameIsPaused) Debug2Log($"vessel not landed");
 			}
 
 			if (dogfightTarget != dogfightPrevTarget)
@@ -1591,32 +1596,32 @@ namespace CameraTools
 				flightCamera.transform.rotation = Quaternion.LookRotation(lastTargetPosition - flightCamera.transform.position, upAxis);
 			}
 
-			if (DEBUG2 && !GameIsPaused)
-			{
-				var Δ = lastOffset - (vessel.transform.position - flightCamera.transform.position);
-				Debug2Log("situation: " + vessel.situation);
-				Debug2Log("warp mode: " + TimeWarp.WarpMode + ", fixedDeltaTime: " + TimeWarp.fixedDeltaTime);
-				Debug2Log("floating origin offset: " + FloatingOrigin.Offset.ToString("G6"));
-				Debug2Log("offsetNonKB: " + FloatingOrigin.OffsetNonKrakensbane.ToString("G6"));
-				Debug2Log("vv*Δt: " + (vessel.obt_velocity * TimeWarp.fixedDeltaTime).ToString("G6"));
-				Debug2Log("sv*Δt: " + (vessel.srf_velocity * TimeWarp.fixedDeltaTime).ToString("G6"));
-				Debug2Log("kv*Δt: " + (Krakensbane.GetFrameVelocity() * TimeWarp.fixedDeltaTime).ToString("G6"));
-				Debug2Log("ΔKv: " + Krakensbane.GetLastCorrection().ToString("G6"));
-				Debug2Log("sv*Δt-onkb: " + (vessel.srf_velocity * TimeWarp.fixedDeltaTime - FloatingOrigin.OffsetNonKrakensbane).ToString("G6"));
-				Debug2Log("kv*Δt-onkb: " + (Krakensbane.GetFrameVelocity() * TimeWarp.fixedDeltaTime - FloatingOrigin.OffsetNonKrakensbane).ToString("G6"));
-				Debug2Log("floatingKrakenAdjustment: " + floatingKrakenAdjustment.ToString("G6"));
-				Debug2Log("(sv-kv)*Δt" + ((vessel.srf_velocity - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime).ToString("G6"));
-				Debug2Log("Parent pos: " + cameraParent.transform.position.ToString("G6"));
-				Debug2Log("Camera pos: " + flightCamera.transform.position.ToString("G6"));
-				Debug2Log("ΔCamera: " + (flightCamera.transform.position - lastCameraPosition).ToString("G6"));
-				Debug2Log("δp: " + (cameraParent.transform.position - lastCamParentPosition).ToString("G6"));
-				Debug2Log("ΔCamera + δp: " + (flightCamera.transform.position - lastCameraPosition + cameraParent.transform.position - lastCamParentPosition).ToString("G6"));
-				Debug2Log("δ: " + lastOffsetSinceLastFrame.ToString("G6"));
-				Debug2Log("Δ: " + Δ.ToString("G6"));
-				Debug2Log("δ + Δ: " + (lastOffsetSinceLastFrame + Δ).ToString("G6"));
-				lastOffset = vessel.transform.position - flightCamera.transform.position;
-				lastCamParentPosition = cameraParent.transform.position;
-			}
+			// if (DEBUG2 && !GameIsPaused)
+			// {
+			// 	var Δ = lastOffset - (vessel.transform.position - flightCamera.transform.position);
+			// 	Debug2Log("situation: " + vessel.situation);
+			// 	Debug2Log("warp mode: " + TimeWarp.WarpMode + ", fixedDeltaTime: " + TimeWarp.fixedDeltaTime);
+			// 	Debug2Log("floating origin offset: " + FloatingOrigin.Offset.ToString("G6"));
+			// 	Debug2Log("offsetNonKB: " + FloatingOrigin.OffsetNonKrakensbane.ToString("G6"));
+			// 	Debug2Log("vv*Δt: " + (vessel.obt_velocity * TimeWarp.fixedDeltaTime).ToString("G6"));
+			// 	Debug2Log("sv*Δt: " + (vessel.srf_velocity * TimeWarp.fixedDeltaTime).ToString("G6"));
+			// 	Debug2Log("kv*Δt: " + (Krakensbane.GetFrameVelocity() * TimeWarp.fixedDeltaTime).ToString("G6"));
+			// 	Debug2Log("ΔKv: " + Krakensbane.GetLastCorrection().ToString("G6"));
+			// 	Debug2Log("sv*Δt-onkb: " + (vessel.srf_velocity * TimeWarp.fixedDeltaTime - FloatingOrigin.OffsetNonKrakensbane).ToString("G6"));
+			// 	Debug2Log("kv*Δt-onkb: " + (Krakensbane.GetFrameVelocity() * TimeWarp.fixedDeltaTime - FloatingOrigin.OffsetNonKrakensbane).ToString("G6"));
+			// 	Debug2Log("floatingKrakenAdjustment: " + floatingKrakenAdjustment.ToString("G6"));
+			// 	Debug2Log("(sv-kv)*Δt" + ((vessel.srf_velocity - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime).ToString("G6"));
+			// 	Debug2Log("Parent pos: " + cameraParent.transform.position.ToString("G6"));
+			// 	Debug2Log("Camera pos: " + flightCamera.transform.position.ToString("G6"));
+			// 	Debug2Log("ΔCamera: " + (flightCamera.transform.position - lastCameraPosition).ToString("G6"));
+			// 	Debug2Log("δp: " + (cameraParent.transform.position - lastCamParentPosition).ToString("G6"));
+			// 	Debug2Log("ΔCamera + δp: " + (flightCamera.transform.position - lastCameraPosition + cameraParent.transform.position - lastCamParentPosition).ToString("G6"));
+			// 	Debug2Log("δ: " + lastOffsetSinceLastFrame.ToString("G6"));
+			// 	Debug2Log("Δ: " + Δ.ToString("G6"));
+			// 	Debug2Log("δ + Δ: " + (lastOffsetSinceLastFrame + Δ).ToString("G6"));
+			// 	lastOffset = vessel.transform.position - flightCamera.transform.position;
+			// 	lastCamParentPosition = cameraParent.transform.position;
+			// }
 
 			//free move
 			if (enableKeypad && !boundThisFrame)
@@ -2458,6 +2463,7 @@ namespace CameraTools
 				flightCamera.transform.parent = origParent;
 				if (origParent != null) // Restore the camera to the original local offsets from the original gameObject.
 				{
+					origParent.position = origParentPosition;
 					flightCamera.transform.localPosition = origLocalPosition;
 					flightCamera.transform.localRotation = origLocalRotation;
 					flightCamera.SetDistanceImmediate(origDistance);
@@ -2506,6 +2512,7 @@ namespace CameraTools
 			origLocalPosition = flightCamera.transform.localPosition;
 			origLocalRotation = flightCamera.transform.localRotation;
 			origParent = flightCamera.transform.parent;
+			origParentPosition = origParent.position;
 			origNearClip = HighLogic.LoadedSceneIsFlight ? flightCamera.mainCamera.nearClipPlane : Camera.main.nearClipPlane;
 			origDistance = flightCamera.Distance;
 			origMode = flightCamera.mode;
@@ -2693,6 +2700,10 @@ namespace CameraTools
 			line++;
 
 			useAudioEffects = GUI.Toggle(LabelRect(++line), useAudioEffects, "Use Audio Effects");
+			if (enableVFX != (enableVFX = GUI.Toggle(LabelRect(++line), enableVFX, "Enable Visual Effects")))
+			{
+				if (cameraToolActive) origParent.position = enableVFX ? cameraParent.transform.position : FlightGlobals.currentMainBody.position; // Set the origParent to the centre of the current mainbody to make sure it's out of range for FX to take effect.
+			}
 			if (bdArmory.hasBDA) bdArmory.autoEnableForBDA = GUI.Toggle(LabelRect(++line), bdArmory.autoEnableForBDA, "Auto-Enable for BDArmory");
 
 			line++;
@@ -3635,6 +3646,7 @@ namespace CameraTools
 				flightCamera.transform.localPosition = cameraParent.transform.InverseTransformPoint(referenceTransform.position);
 				flightCamera.transform.localRotation = Quaternion.identity;
 			}
+			origParent.position = enableVFX ? cameraParent.transform.position : FlightGlobals.currentMainBody.position;
 		}
 
 		void SetDeathCam()
