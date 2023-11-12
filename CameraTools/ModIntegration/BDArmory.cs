@@ -227,6 +227,13 @@ namespace CameraTools.ModIntegration
 						aiComponent = (object)p.GetComponent("BDModuleSurfaceAI");
 						return;
 					}
+					if (p.GetComponent("BDModuleOrbitalAI"))
+					{
+						hasBDAI = true;
+						hasPilotAI = true;
+						aiComponent = (object)p.GetComponent("BDModuleOrbitalAI");
+						return;
+					}
 				}
 			}
 		}
