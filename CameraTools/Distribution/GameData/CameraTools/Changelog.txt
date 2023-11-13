@@ -2,6 +2,7 @@ v1.30.0
 Improvements / Bugfixes:
 - Fix stock aero FX not being applied and provide a toggle to disable them.
 - Adjustments to fix some issues when BDArmory should be inhibiting CameraTools and more detailed debugging messages.
+- Add check for new BDA OrbitalAI.
 
 v1.29.2
 Improvements / Bugfixes:
