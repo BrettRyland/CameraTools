@@ -1,5 +1,6 @@
 Improvements / Bugfixes:
 - Fix aero FX not being applied and provide a toggle to disable them.
+- Adjustments to fix some issues when BDArmory should be inhibiting CameraTools and more detailed debugging messages.
 
 v1.29.2
 Improvements / Bugfixes:

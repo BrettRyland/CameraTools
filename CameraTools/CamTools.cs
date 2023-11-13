@@ -746,6 +746,7 @@ namespace CameraTools
 				waitingForPosition = false;
 			}
 
+			if (BDArmory.IsInhibited) return; // Don't do anything else while BDA is inhibiting us.
 			if (cameraToolActive)
 			{
 				switch (toolMode)
@@ -772,6 +773,7 @@ namespace CameraTools
 			if (!FlightGlobals.ready || GameIsPaused) return;
 			if (CameraManager.Instance.currentCameraMode != CameraManager.CameraMode.Flight) return;
 			if (MapView.MapIsEnabled) return; // Don't do anything in map mode.
+			if (BDArmory.IsInhibited) return; // Don't do anything while BDA is inhibiting us.
 
 			if (DEBUG2 && !GameIsPaused) debug2Messages.Clear();
 
@@ -788,7 +790,7 @@ namespace CameraTools
 					}
 					else
 					{
-						message = "Someone has stolen the camera parent! Abort!";
+						message = $"Someone has stolen the camera parent ({flightCamera.transform.parent.name} vs {(hasDied ? deathCam.transform.name : cameraParent.transform.name)})! Abort!";
 						Debug.Log("[CameraTools]: " + message);
 						if (DEBUG) DebugLog(message);
 						cameraToolActive = false;
@@ -882,6 +884,7 @@ namespace CameraTools
 		{
 			boundThisFrame = false;
 			UpdateCameraShake(); // Update camera shake each frame so that it dies down.
+			if (BDArmory.IsInhibited) return; // Don't do anything else while BDA is inhibiting us.
 			if (hasDied && cameraToolActive)
 			{
 				deathCam.transform.position += deathCamVelocity * TimeWarp.deltaTime;
@@ -955,12 +958,18 @@ namespace CameraTools
 		void StartDogfightCamera()
 		{
 			toolMode = ToolModes.DogfightCamera;
-			if (FlightGlobals.ActiveVessel == null)
+			vessel = FlightGlobals.ActiveVessel;
+			if (vessel == null)
 			{
 				Debug.Log("[CameraTools]: No active vessel.");
 				return;
 			}
-			if (DEBUG) { Debug.Log("[CameraTools]: Starting dogfight camera."); DebugLog("Starting dogfight camera"); }
+			if (DEBUG)
+			{
+				message = $"Starting dogfight camera for {vessel.vesselName}{(dogfightTarget ? $" vs {dogfightTarget.vesselName}" : "")}.";
+				Debug.Log($"[CameraTools]: {message}");
+				DebugLog(message);
+			}
 
 			if (MouseAimFlight.IsMouseAimActive())
 			{
@@ -968,7 +977,7 @@ namespace CameraTools
 				dogfightLastTarget = true;
 				dogfightVelocityChase = false;
 			}
-			else if (bdArmory.hasBDA && bdArmory.useCentroid && bdArmory.bdWMVessels.Count > 1)
+			else if (BDArmory.hasBDA && bdArmory.useCentroid && bdArmory.bdWMVessels.Count > 1)
 			{
 				dogfightLastTarget = true;
 				dogfightVelocityChase = false;
@@ -992,7 +1001,6 @@ namespace CameraTools
 			dogfightPrevTarget = dogfightTarget;
 
 			hasDied = false;
-			vessel = FlightGlobals.ActiveVessel;
 			cameraUp = -FlightGlobals.getGeeForceAtPosition(vessel.CoM).normalized;
 
 			if (flightCamera.transform.parent != cameraParent.transform)
@@ -1052,7 +1060,7 @@ namespace CameraTools
 				mouseAimFlightTargetLocal = cameraTransform.InverseTransformDirection(mouseAimFlightTarget);
 				dogfightLastTargetPosition = (mouseAimFlightTarget.normalized + vessel.srf_vel_direction) * 5000f + vessel.CoM;
 			}
-			else if (bdArmory.hasBDA && bdArmory.useCentroid && bdArmory.bdWMVessels.Count > 1)
+			else if (BDArmory.hasBDA && bdArmory.useCentroid && bdArmory.bdWMVessels.Count > 1)
 			{
 				dogfightLastTarget = true;
 				dogfightLastTargetVelocity = Vector3.zero;
@@ -1337,7 +1345,7 @@ namespace CameraTools
 				}
 			}
 
-			if (bdArmory.hasBDA && bdArmory.hasBDAI && (bdArmory.useBDAutoTarget || (bdArmory.useCentroid && bdArmory.bdWMVessels.Count < 2)))
+			if (BDArmory.hasBDA && bdArmory.hasBDAI && (bdArmory.useBDAutoTarget || (bdArmory.useCentroid && bdArmory.bdWMVessels.Count < 2)))
 			{
 				bdArmory.UpdateAIDogfightTarget(); // Using delegates instead of reflection allows us to check every frame.
 				if (vessel.LandedOrSplashed)
@@ -2360,7 +2368,7 @@ namespace CameraTools
 			cockpits.Clear();
 			engines.Clear();
 
-			if (bdArmory.hasBDA)
+			if (BDArmory.hasBDA)
 			{
 				bdArmory.CheckForBDAI(v);
 				bdArmory.CheckForBDWM(v);
@@ -2369,7 +2377,8 @@ namespace CameraTools
 			}
 			if (cameraToolActive)
 			{
-				if (randomMode)
+				if (BDArmory.IsInhibited) RevertCamera();
+				else if (randomMode)
 				{
 					var lowAlt = Math.Max(30d, -5d * vessel.verticalSpeed * Mathf.Max(0, Vector3.Dot(vessel.srf_vel_direction, -cameraUp))); // 30m or up to 5s to impact (depending on angle), whichever is higher.
 					var stationarySurfaceVessel = (vessel.Landed && vessel.Speed() < 1) || (vessel.Splashed && vessel.Speed() < 5); // Land or water vessel that isn't moving much.
@@ -2377,7 +2386,7 @@ namespace CameraTools
 					{
 						StartStationaryCamera();
 					}
-					else if (bdArmory.hasBDA && bdArmory.isBDMissile)
+					else if (BDArmory.hasBDA && bdArmory.isBDMissile)
 					{
 						dogfightTarget = null;
 						StartDogfightCamera(); // Use dogfight chase mode for BDA missiles.
@@ -2460,6 +2469,7 @@ namespace CameraTools
 			}
 			if (cameraToolActive)
 			{
+				if (DEBUG) Debug.Log($"[CameraTools]: Resetting camera parent to {origParent.name}");
 				flightCamera.transform.parent = origParent;
 				if (origParent != null) // Restore the camera to the original local offsets from the original gameObject.
 				{
@@ -2699,12 +2709,12 @@ namespace CameraTools
 			}
 			line++;
 
-			useAudioEffects = GUI.Toggle(LabelRect(++line), useAudioEffects, "Use Audio Effects");
+			useAudioEffects = GUI.Toggle(LabelRect(++line), useAudioEffects, "Enable Audio Effects");
 			if (enableVFX != (enableVFX = GUI.Toggle(LabelRect(++line), enableVFX, "Enable Visual Effects")))
 			{
 				if (cameraToolActive) origParent.position = enableVFX ? cameraParent.transform.position : FlightGlobals.currentMainBody.position; // Set the origParent to the centre of the current mainbody to make sure it's out of range for FX to take effect.
 			}
-			if (bdArmory.hasBDA) bdArmory.autoEnableForBDA = GUI.Toggle(LabelRect(++line), bdArmory.autoEnableForBDA, "Auto-Enable for BDArmory");
+			if (BDArmory.hasBDA) bdArmory.autoEnableForBDA = GUI.Toggle(LabelRect(++line), bdArmory.autoEnableForBDA, "Auto-Enable for BDArmory");
 
 			line++;
 			if (autoFOV && toolMode != ToolModes.Pathing)
@@ -2858,7 +2868,7 @@ namespace CameraTools
 				{ tVesselLabel = "MouseAimFlight"; }
 				else if (showingVesselList)
 				{ tVesselLabel = "Clear"; }
-				else if (bdArmory.hasBDA && bdArmory.useCentroid)
+				else if (BDArmory.hasBDA && bdArmory.useCentroid)
 				{ tVesselLabel = "Centroid"; }
 				else if (dogfightTarget)
 				{ tVesselLabel = dogfightTarget.vesselName; }
@@ -2890,7 +2900,7 @@ namespace CameraTools
 						}
 					}
 				}
-				if (bdArmory.hasBDA)
+				if (BDArmory.hasBDA)
 				{
 					if (bdArmory.hasBDAI)
 					{
@@ -3540,14 +3550,14 @@ namespace CameraTools
 				hasDied = true;
 				diedTime = Time.time;
 
+				// Something borks the camera position/rotation when the target/parent is set to none/null. This fixes that.
+				deathCamVelocity = (vessel.radarAltitude > 10d ? vessel.Velocity() : Vector3d.zero) / 2f; // Track the explosion a bit.
 				if (DEBUG)
 				{
-					message = "Activating death camera.";
+					message = $"Activating death camera with speed {deathCamVelocity.magnitude:G3}m/s.";
 					Debug.Log("[CameraTools]: " + message);
 					DebugLog(message);
 				}
-				// Something borks the camera position/rotation when the target/parent is set to none/null. This fixes that.
-				deathCamVelocity = (vessel.radarAltitude > 10d ? vessel.Velocity() : Vector3d.zero) / 2f; // Track the explosion a bit.
 				SetDeathCam();
 			}
 		}
@@ -3633,7 +3643,7 @@ namespace CameraTools
 
 		void SetCameraParent(Transform referenceTransform, bool resetToCoM = false)
 		{
-			if (DEBUG) Debug.Log($"[CameraTools]: Setting the camera parent to {referenceTransform.gameObject.name} from {flightCamera.gameObject.name}, reset-to-CoM: {resetToCoM}");
+			if (DEBUG) Debug.Log($"[CameraTools]: Setting the camera parent to {cameraParent.transform.name} using {referenceTransform.name} on {referenceTransform.gameObject.name} as reference. Previously was {flightCamera.transform.parent.name} on {flightCamera.gameObject.name}, reset-to-CoM: {resetToCoM}");
 			cameraParent.transform.position = referenceTransform.position;
 			cameraParent.transform.rotation = referenceTransform.rotation;
 			flightCamera.SetTargetNone();
@@ -3651,6 +3661,7 @@ namespace CameraTools
 
 		void SetDeathCam()
 		{
+			if (DEBUG) Debug.Log($"[CameraTools]: Setting the death camera.");
 			flightCamera.SetTargetNone();
 			flightCamera.transform.parent = deathCam.transform;
 			cameraParentWasStolen = false;

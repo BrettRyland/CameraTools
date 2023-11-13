@@ -13,7 +13,7 @@ namespace CameraTools.ModIntegration
 	{
 		#region Public fields
 		public static BDArmory instance;
-		public bool hasBDA = false;
+		public static bool hasBDA = false;
 
 		[CTPersistantField] public bool autoEnableForBDA = false;
 		[CTPersistantField] public bool useBDAutoTarget = false;
@@ -77,6 +77,11 @@ namespace CameraTools.ModIntegration
 		void Start()
 		{
 			CheckForBDA();
+			if (!hasBDA)
+			{
+				Destroy(this);
+				return;
+			}
 			if (hasBDA)
 			{
 				aiModType = GetAIModuleType();
@@ -102,6 +107,11 @@ namespace CameraTools.ModIntegration
 		void OnDestroy()
 		{
 			CTPersistantField.Save("BDArmoryIntegration", typeof(BDArmory), this);
+		}
+
+		void FixedUpdate()
+		{
+			_inhibitChecked = false;
 		}
 
 		void CheckForBDA()
@@ -406,25 +416,30 @@ namespace CameraTools.ModIntegration
 			}
 		}
 
+		public static bool IsInhibited => hasBDA && instance.isInhibited;
+		bool isInhibited // Avoid checking across mods more than once per fixedUpdate.
+		{
+			get
+			{
+				if (!_inhibitChecked)
+				{
+					if (bdVesselsSpawningPropertyGetter != null) _inhibited = (bool)bdVesselsSpawningPropertyGetter(null);
+					else if (bdVesselsSpawningFieldGetter != null) _inhibited = bdVesselsSpawningFieldGetter(bdVesselSpawnerInstance); // Deprecated, but just in case someone is using an older version of BDA.
+					else _inhibited = false;
+					_inhibitChecked = true;
+				}
+				return _inhibited;
+			}
+		}
+		bool _inhibitChecked = false;
+		bool _inhibited = false;
+
 		public void AutoEnableForBDA()
 		{
 			if (!hasBDA) return;
 			try
 			{
-				if (bdVesselsSpawningPropertyGetter != null && (bool)bdVesselsSpawningPropertyGetter(null))
-				{
-					if (autoEnableOverride)
-						return; // Still spawning.
-					else
-					{
-						Debug.Log("[CameraTools]: Deactivating CameraTools while spawning vessels.");
-						autoEnableOverride = true;
-						camTools.RevertCamera();
-						return;
-					}
-				}
-
-				if (bdVesselsSpawningFieldGetter != null && bdVesselsSpawningFieldGetter(bdVesselSpawnerInstance)) // Deprecated.
+				if (IsInhibited)
 				{
 					if (autoEnableOverride)
 						return; // Still spawning.
