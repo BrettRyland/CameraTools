@@ -45,6 +45,7 @@ namespace CameraTools
 		/// <returns></returns>
 		public static Vector3 EstimateSlope(Vector3 point0, Vector3 point1, Vector3 point2, float dt01, float dt12)
 		{
+			if (dt01 == 0 || dt12 == 0) return Vector3.zero;
 			return 0.5f * ((point2 - point1) / dt12 + (point1 - point0) / dt01);
 		}
 
@@ -57,6 +58,7 @@ namespace CameraTools
 		/// <returns></returns>
 		public static Vector3 EstimateSlope(Vector3 point0, Vector3 point1, float dt)
 		{
+			if (dt == 0) return Vector3.zero;
 			return (point1 - point0) / dt;
 		}
 		#endregion
@@ -108,6 +110,7 @@ namespace CameraTools
 		/// <returns></returns>
 		public static Quaternion EstimateSlope(Quaternion point0, Quaternion point1, Quaternion point2, float dt01, float dt12)
 		{
+			if (dt01 == 0 || dt12 == 0) return Quaternion.identity;
 			return new Quaternion(
 				0.5f * ((point2.x - point1.x) / dt12 + (point1.x - point0.x) / dt01),
 				0.5f * ((point2.y - point1.y) / dt12 + (point1.y - point0.y) / dt01),
@@ -125,6 +128,7 @@ namespace CameraTools
 		/// <returns></returns>
 		public static Quaternion EstimateSlope(Quaternion point0, Quaternion point1, float dt)
 		{
+			if (dt == 0) return Quaternion.identity;
 			return new Quaternion(
 				(point1.x - point0.x) / dt,
 				(point1.y - point0.y) / dt,
@@ -132,6 +136,6 @@ namespace CameraTools
 				(point1.w - point0.w) / dt
 			);
 		}
-#endregion
+		#endregion
 	}
 }

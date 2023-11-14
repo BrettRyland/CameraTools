@@ -159,11 +159,12 @@ namespace CameraTools
 			return iList;
 		}
 
-		public void AddTransform(Transform cameraTransform, float zoom, float time, PositionInterpolationType positionInterpolationType, RotationInterpolationType rotationInterpolationType)
+		public void AddTransform(Transform cameraTransform, float zoom, ref float time, PositionInterpolationType positionInterpolationType, RotationInterpolationType rotationInterpolationType)
 		{
 			points.Add(cameraTransform.localPosition);
 			rotations.Add(cameraTransform.localRotation);
 			zooms.Add(zoom);
+			while (times.Contains(time)) time += 1e-3f; // Avoid duplicate times.
 			times.Add(time);
 			positionInterpolationTypes.Add(positionInterpolationType);
 			rotationInterpolationTypes.Add(rotationInterpolationType);
@@ -171,11 +172,12 @@ namespace CameraTools
 			UpdateCurves();
 		}
 
-		public void SetTransform(int index, Transform cameraTransform, float zoom, float time, PositionInterpolationType positionInterpolationType, RotationInterpolationType rotationInterpolationType)
+		public void SetTransform(int index, Transform cameraTransform, float zoom, ref float time, PositionInterpolationType positionInterpolationType, RotationInterpolationType rotationInterpolationType)
 		{
 			points[index] = cameraTransform.localPosition;
 			rotations[index] = cameraTransform.localRotation;
 			zooms[index] = zoom;
+			while (times.Contains(time)) time += 1e-3f; // Avoid duplicate times.
 			times[index] = time;
 			positionInterpolationTypes[index] = positionInterpolationType;
 			rotationInterpolationTypes[index] = rotationInterpolationType;
@@ -202,9 +204,12 @@ namespace CameraTools
 
 		public void Sort()
 		{
-			List<CameraKeyframe> keyframes = new List<CameraKeyframe>();
+			List<CameraKeyframe> keyframes = new();
+			List<float> _times = new();
 			for (int i = 0; i < points.Count; i++)
 			{
+				while (_times.Contains(times[i])) times[i] += 1e-3f; // Sanitise times to avoid duplicates.
+				_times.Add(times[i]);
 				keyframes.Add(new CameraKeyframe(points[i], rotations[i], zooms[i], times[i], positionInterpolationTypes[i], rotationInterpolationTypes[i]));
 			}
 			keyframes.Sort(new CameraKeyframeComparer());
@@ -235,12 +240,14 @@ namespace CameraTools
 			}
 		}
 
-		public CameraTransformation Evaulate(float time)
+		public CameraTransformation Evaluate(float time)
 		{
-			CameraTransformation tf = new CameraTransformation();
-			tf.position = pointCurve.Evaluate(time);
-			tf.rotation = rotationCurve.Evaluate(time);
-			tf.zoom = zoomCurve.Evaluate(time);
+			CameraTransformation tf = new()
+			{
+				position = pointCurve.Evaluate(time),
+				rotation = rotationCurve.Evaluate(time),
+				zoom = zoomCurve.Evaluate(time)
+			};
 
 			return tf;
 		}

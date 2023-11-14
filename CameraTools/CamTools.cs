@@ -1840,11 +1840,10 @@ namespace CameraTools
 
 			if (isPlayingPath)
 			{
-				CameraTransformation tf = currentPath.Evaulate(pathTime * currentPath.timeScale);
+				CameraTransformation tf = currentPath.Evaluate(pathTime * currentPath.timeScale);
 				flightCamera.transform.localPosition = Vector3.Lerp(flightCamera.transform.localPosition, tf.position, pathingLerpRate);
 				flightCamera.transform.localRotation = Quaternion.Slerp(flightCamera.transform.localRotation, tf.rotation, pathingLerpRate);
 				zoomExp = Mathf.Lerp(zoomExp, tf.zoom, pathingLerpRate);
-
 			}
 			else
 			{
@@ -2100,7 +2099,7 @@ namespace CameraTools
 				cameraToolActive = true;
 			}
 
-			currentPath.AddTransform(flightCamera.transform, zoomExp, time, positionInterpolationType, rotationInterpolationType);
+			currentPath.AddTransform(flightCamera.transform, zoomExp, ref time, positionInterpolationType, rotationInterpolationType);
 
 			SelectKeyframe(currentPath.times.IndexOf(time));
 
@@ -2157,7 +2156,7 @@ namespace CameraTools
 				StartPathingCam();
 			}
 
-			CameraTransformation firstFrame = currentPath.Evaulate(startTime);
+			CameraTransformation firstFrame = currentPath.Evaluate(startTime);
 			flightCamera.transform.localPosition = firstFrame.position;
 			flightCamera.transform.localRotation = firstFrame.rotation;
 			SetZoomImmediate(firstFrame.zoom);
@@ -3391,7 +3390,7 @@ namespace CameraTools
 			if (GUI.Button(new Rect(100 + gap, gap + (++line * lineHeight), 200 - 2 * gap, lineHeight - gap), "Apply"))
 			{
 				Debug.Log("[CameraTools]: Applying keyframe at time: " + currentKeyframeTime);
-				currentPath.SetTransform(currentKeyframeIndex, flightCamera.transform, zoomExp, currentKeyframeTime, currentKeyframePositionInterpolationType, currentKeyframeRotationInterpolationType);
+				currentPath.SetTransform(currentKeyframeIndex, flightCamera.transform, zoomExp, ref currentKeyframeTime, currentKeyframePositionInterpolationType, currentKeyframeRotationInterpolationType);
 				applied = true;
 			}
 			if (GUI.Button(new Rect(100 + gap, gap + (++line * lineHeight), 200 - 2 * gap, lineHeight - gap), "Cancel"))
