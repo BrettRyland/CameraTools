@@ -99,11 +99,11 @@ namespace CameraTools
 		void Reset()
 		{
 			playedBoom = true; // Default to true so that it doesn't play accidentally.
-			if (windAudioSource.isPlaying) windAudioSource.Stop();
-			if (windHowlAudioSource.isPlaying) windHowlAudioSource.Stop();
-			if (windTearAudioSource.isPlaying) windTearAudioSource.Stop();
-			if (sonicBoomSource.isPlaying) sonicBoomSource.Stop();
-			if (delayedSonicBoomSource.isPlaying) delayedSonicBoomSource.Stop();
+			if (windAudioSource && windAudioSource.isPlaying) windAudioSource.Stop();
+			if (windHowlAudioSource && windHowlAudioSource.isPlaying) windHowlAudioSource.Stop();
+			if (windTearAudioSource && windTearAudioSource.isPlaying) windTearAudioSource.Stop();
+			if (sonicBoomSource && sonicBoomSource.isPlaying) sonicBoomSource.Stop();
+			if (delayedSonicBoomSource && delayedSonicBoomSource.isPlaying) delayedSonicBoomSource.Stop();
 		}
 
 		void FixedUpdate()
