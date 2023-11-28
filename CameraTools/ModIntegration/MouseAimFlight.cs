@@ -120,19 +120,19 @@ namespace CameraTools.ModIntegration
 
 		public Vector3 GetCurrentMouseAimTarget()
 		{
-			if (!IsMouseAimActive()) return lastTarget;
+			if (!IsMouseAimActive) return lastTarget;
 			lastTarget = targetPositionFieldGetter(mouseAimFlightInstance);
 			return lastTarget;
 		}
 
 		public void SetCurrentMouseAimTarget(Vector3 position)
 		{
-			if (!IsMouseAimActive()) return;
+			if (!IsMouseAimActive) return;
 			targetPositionFieldSetter(mouseAimFlightInstance, position);
 		}
 
-		public static bool IsMouseAimActive() => hasMouseAimFlight && Instance != null && Instance.IsMouseAimFlightActive();
-		public static Vector3 GetMouseAimTarget() => Instance.GetCurrentMouseAimTarget();
+		public static bool IsMouseAimActive => hasMouseAimFlight && Instance != null && Instance.IsMouseAimFlightActive();
+		public static Vector3 GetMouseAimTarget => Instance.GetCurrentMouseAimTarget();
 		public static void SetMouseAimTarget(Vector3 position) => Instance.SetCurrentMouseAimTarget(position);
 
 		// Free Look

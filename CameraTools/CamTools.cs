@@ -971,7 +971,7 @@ namespace CameraTools
 				DebugLog(message);
 			}
 
-			if (MouseAimFlight.IsMouseAimActive())
+			if (MouseAimFlight.IsMouseAimActive)
 			{
 				dogfightTarget = null;
 				dogfightLastTarget = true;
@@ -1050,13 +1050,13 @@ namespace CameraTools
 			}
 
 			var cameraTransform = flightCamera.transform;
-			if (MouseAimFlight.IsMouseAimActive())
+			if (MouseAimFlight.IsMouseAimActive)
 			{ // We need to set these each time as MouseAimFlight can be enabled/disabled while CameraTools is active.
 				dogfightTarget = null;
 				dogfightLastTarget = true;
 				dogfightVelocityChase = false;
 				dogfightLastTargetVelocity = Vector3.zero;
-				mouseAimFlightTarget = MouseAimFlight.GetMouseAimTarget();
+				mouseAimFlightTarget = MouseAimFlight.GetMouseAimTarget;
 				mouseAimFlightTargetLocal = cameraTransform.InverseTransformDirection(mouseAimFlightTarget);
 				dogfightLastTargetPosition = (mouseAimFlightTarget.normalized + vessel.srf_vel_direction) * 5000f + vessel.CoM;
 			}
@@ -1160,7 +1160,7 @@ namespace CameraTools
 				if (freeLook)
 				{
 					freeLook = false;
-					if (MouseAimFlight.IsMouseAimActive()) MouseAimFlight.SetFreeLookCooldown(1); // Give it 1s for the camera orientation to recover before resuming applying our modification to the MouseAimFlight target.
+					if (MouseAimFlight.IsMouseAimActive) MouseAimFlight.SetFreeLookCooldown(1); // Give it 1s for the camera orientation to recover before resuming applying our modification to the MouseAimFlight target.
 				}
 			}
 			if (freeLook)
@@ -1175,7 +1175,7 @@ namespace CameraTools
 				Quaternion targetLook = Quaternion.LookRotation(dogfightLastTargetPosition - cameraTransform.position, dogfightCameraRollUp);
 				Quaternion camRot = Quaternion.Lerp(vesselLook, targetLook, 0.5f);
 				cameraTransform.rotation = Quaternion.Lerp(cameraTransform.rotation, camRot, dogfightLerp);
-				if (MouseAimFlight.IsMouseAimActive())
+				if (MouseAimFlight.IsMouseAimActive)
 				{
 					if (!MouseAimFlight.IsInFreeLookRecovery)
 					{
@@ -2863,7 +2863,7 @@ namespace CameraTools
 			{
 				GUI.Label(ThinRect(++line), "Secondary Target:");
 				string tVesselLabel;
-				if (MouseAimFlight.IsMouseAimActive())
+				if (MouseAimFlight.IsMouseAimActive)
 				{ tVesselLabel = "MouseAimFlight"; }
 				else if (showingVesselList)
 				{ tVesselLabel = "Clear"; }
@@ -2888,7 +2888,7 @@ namespace CameraTools
 				}
 				if (showingVesselList)
 				{
-					if (MouseAimFlight.IsMouseAimActive()) showingVesselList = false;
+					if (MouseAimFlight.IsMouseAimActive) showingVesselList = false;
 					foreach (var v in loadedVessels)
 					{
 						if (!v || !v.loaded) continue;
