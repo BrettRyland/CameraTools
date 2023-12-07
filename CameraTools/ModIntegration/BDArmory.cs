@@ -43,6 +43,7 @@ namespace CameraTools.ModIntegration
 		object bdVesselSpawnerInstance = null;
 		Func<object, bool> bdVesselsSpawningFieldGetter = null;
 		Func<object, object> bdVesselsSpawningPropertyGetter = null;
+		Func<object, object> bdInhibitCameraToolsPropertyGetter = null;
 		Type bdBDATournamentType = null;
 		object bdBDATournamentInstance = null;
 		Func<object, bool> bdTournamentWarpInProgressFieldGetter = null;
@@ -123,6 +124,7 @@ namespace CameraTools.ModIntegration
 			bdVesselSpawnerInstance = null;
 			bdVesselsSpawningFieldGetter = null;
 			bdVesselsSpawningPropertyGetter = null;
+			bdInhibitCameraToolsPropertyGetter = null;
 			bdLoadedVesselSwitcherVesselsPropertyGetter = null;
 			bdBDATournamentType = null;
 			bdBDATournamentInstance = null;
@@ -156,14 +158,17 @@ namespace CameraTools.ModIntegration
 										}
 									break;
 								case "VesselSpawnerStatus":
-									foreach (var propertyInfo in t.GetProperties(BindingFlags.Public | BindingFlags.Static))
-										if (propertyInfo != null && propertyInfo.Name == "inhibitCameraTools")
-										{
-											bdVesselsSpawningPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
-											if (bdVesselsSpawningFieldGetter != null) // Clear the deprecated field.
-											{ bdVesselsSpawningFieldGetter = null; }
-											break;
-										}
+									if (bdInhibitCameraToolsPropertyGetter == null) // Skip if we've found a more up-to-date property to access.
+									{
+										foreach (var propertyInfo in t.GetProperties(BindingFlags.Public | BindingFlags.Static))
+											if (propertyInfo != null && propertyInfo.Name == "inhibitCameraTools")
+											{
+												bdVesselsSpawningPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+												if (bdVesselsSpawningFieldGetter != null) // Clear the deprecated field.
+												{ bdVesselsSpawningFieldGetter = null; }
+												break;
+											}
+									}
 									break;
 								case "LoadedVesselSwitcher":
 									bdLoadedVesselSwitcherInstance = FindObjectOfType(t);
@@ -175,7 +180,7 @@ namespace CameraTools.ModIntegration
 										}
 									break;
 								case "VesselSpawner":
-									if (bdVesselsSpawningPropertyGetter == null)
+									if (bdVesselsSpawningPropertyGetter == null && bdInhibitCameraToolsPropertyGetter == null) // Skip if we've found a more up-to-date property to access.
 									{
 										if (!t.IsSubclassOf(typeof(UnityEngine.Object))) continue; // In BDArmory v1.5.0 and upwards, VesselSpawner is a static class.
 										bdVesselSpawnerInstance = FindObjectOfType(t);
@@ -186,6 +191,17 @@ namespace CameraTools.ModIntegration
 												break;
 											}
 									}
+									break;
+								case "CameraTools":
+									foreach (var propertyInfo in t.GetProperties(BindingFlags.Public | BindingFlags.Static))
+										if (propertyInfo != null && propertyInfo.Name == "InhibitCameraTools")
+										{
+											bdInhibitCameraToolsPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+											// Clear the deprecated fields.
+											bdVesselsSpawningFieldGetter = null;
+											bdVesselsSpawningPropertyGetter = null;
+											break;
+										}
 									break;
 								case "BDATournament":
 									bdBDATournamentType = t;
@@ -423,7 +439,8 @@ namespace CameraTools.ModIntegration
 			{
 				if (!_inhibitChecked)
 				{
-					if (bdVesselsSpawningPropertyGetter != null) _inhibited = (bool)bdVesselsSpawningPropertyGetter(null);
+					if (bdInhibitCameraToolsPropertyGetter != null) _inhibited = (bool)bdInhibitCameraToolsPropertyGetter(null);
+					else if (bdVesselsSpawningPropertyGetter != null) _inhibited = (bool)bdVesselsSpawningPropertyGetter(null); // Deprecated in v1.6.9.0 of BDA.
 					else if (bdVesselsSpawningFieldGetter != null) _inhibited = bdVesselsSpawningFieldGetter(bdVesselSpawnerInstance); // Deprecated, but just in case someone is using an older version of BDA.
 					else _inhibited = false;
 					_inhibitChecked = true;
