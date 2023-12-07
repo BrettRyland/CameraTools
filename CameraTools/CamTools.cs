@@ -2473,7 +2473,7 @@ namespace CameraTools
 				{
 					flightCamera.transform.localPosition = origLocalPosition;
 					flightCamera.transform.localRotation = origLocalRotation;
-					flightCamera.SetDistanceImmediate(origDistance);
+					flightCamera.SetDistanceImmediate(BDArmory.hasBDA ? Mathf.Min(origDistance, bdArmory.restoreDistanceLimit) : origDistance);
 				}
 				else // Otherwise, restore the camera to the original absolute position and rotation as the original gameObject no longer exists (if it even existed to begin with).
 				{
@@ -2490,6 +2490,7 @@ namespace CameraTools
 				flightCamera.mainCamera.nearClipPlane = origNearClip;
 			else
 				Camera.main.nearClipPlane = origNearClip;
+			if (BDArmory.hasBDA) bdArmory.OnRevert();
 
 			flightCamera.ActivateUpdate();
 
@@ -2702,7 +2703,7 @@ namespace CameraTools
 					if (DEBUG && fmMode == fmModeTypes.Speed) DebugLog("Disabling speed free move mode due to switching to numeric inputs.");
 					fmMode = fmModeTypes.Position; // Disable speed free move mode when using numeric inputs.
 				}
-				bdArmory.ToggleInputFields(textInput);
+				if (BDArmory.hasBDA) bdArmory.ToggleInputFields(textInput);
 			}
 			line++;
 

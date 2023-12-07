@@ -31,6 +31,7 @@ namespace CameraTools.ModIntegration
 				return _bdWMVessels;
 			}
 		}
+		public float restoreDistanceLimit = float.MaxValue; // Limit the distance to restore the camera to (for auto-enabling).
 		#endregion
 
 		#region Private fields
@@ -44,6 +45,7 @@ namespace CameraTools.ModIntegration
 		Func<object, bool> bdVesselsSpawningFieldGetter = null;
 		Func<object, object> bdVesselsSpawningPropertyGetter = null;
 		Func<object, object> bdInhibitCameraToolsPropertyGetter = null;
+		Func<object, object> bdRestoreDistanceLimitPropertyGetter = null;
 		Type bdBDATournamentType = null;
 		object bdBDATournamentInstance = null;
 		Func<object, bool> bdTournamentWarpInProgressFieldGetter = null;
@@ -125,6 +127,7 @@ namespace CameraTools.ModIntegration
 			bdVesselsSpawningFieldGetter = null;
 			bdVesselsSpawningPropertyGetter = null;
 			bdInhibitCameraToolsPropertyGetter = null;
+			bdRestoreDistanceLimitPropertyGetter = null;
 			bdLoadedVesselSwitcherVesselsPropertyGetter = null;
 			bdBDATournamentType = null;
 			bdBDATournamentInstance = null;
@@ -194,13 +197,20 @@ namespace CameraTools.ModIntegration
 									break;
 								case "CameraTools":
 									foreach (var propertyInfo in t.GetProperties(BindingFlags.Public | BindingFlags.Static))
-										if (propertyInfo != null && propertyInfo.Name == "InhibitCameraTools")
+										if (propertyInfo != null)
 										{
-											bdInhibitCameraToolsPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
-											// Clear the deprecated fields.
-											bdVesselsSpawningFieldGetter = null;
-											bdVesselsSpawningPropertyGetter = null;
-											break;
+											switch (propertyInfo.Name)
+											{
+												case "InhibitCameraTools":
+													bdInhibitCameraToolsPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+													// Clear the deprecated fields.
+													bdVesselsSpawningFieldGetter = null;
+													bdVesselsSpawningPropertyGetter = null;
+													break;
+												case "RestoreDistanceLimit":
+													bdRestoreDistanceLimitPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+													break;
+											}
 										}
 									break;
 								case "BDATournament":
@@ -490,6 +500,7 @@ namespace CameraTools.ModIntegration
 				{
 					Debug.Log("[CameraTools]: Activating CameraTools for BDArmory competition as competition is starting.");
 					camTools.cameraActivate();
+					restoreDistanceLimit = bdRestoreDistanceLimitPropertyGetter != null ? (float)bdRestoreDistanceLimitPropertyGetter(null) : float.MaxValue;
 					return;
 				}
 				else if (bdCompetitionIsActiveFieldGetter != null && bdCompetitionIsActiveFieldGetter(bdCompetitionInstance))
@@ -497,20 +508,23 @@ namespace CameraTools.ModIntegration
 					Debug.Log("[CameraTools]: Activating CameraTools for BDArmory competition as competition is active.");
 					UpdateAIDogfightTarget();
 					camTools.cameraActivate();
+					restoreDistanceLimit = bdRestoreDistanceLimitPropertyGetter != null ? (float)bdRestoreDistanceLimitPropertyGetter(null) : float.MaxValue;
 					return;
 				}
 			}
 			catch (Exception e)
 			{
 				Debug.LogError("[CameraTools]: Checking competition state of BDArmory failed: " + e.Message);
-				bdCompetitionIsActiveFieldGetter = null;
-				bdCompetitionStartingFieldGetter = null;
-				bdCompetitionInstance = null;
-				bdVesselsSpawningFieldGetter = null;
-				bdVesselsSpawningPropertyGetter = null;
-				bdVesselSpawnerInstance = null;
 				CheckForBDA();
 			}
+		}
+
+		/// <summary>
+		/// Perform any BDA-related actions when the camera is reverted.
+		/// </summary>
+		public void OnRevert()
+		{
+			restoreDistanceLimit = float.MaxValue; // Reset the restore distance limit for manual store/restore.
 		}
 
 		FieldInfo GetThreatField()
