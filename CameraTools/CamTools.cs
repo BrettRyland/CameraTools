@@ -28,7 +28,6 @@ namespace CameraTools
 		Vector3 origLocalPosition;
 		Quaternion origLocalRotation;
 		Transform origParent;
-		Vector3 origParentPosition;
 		float origNearClip;
 		float origDistance;
 		FlightCamera.Modes origMode;
@@ -2472,7 +2471,6 @@ namespace CameraTools
 				flightCamera.transform.parent = origParent;
 				if (origParent != null) // Restore the camera to the original local offsets from the original gameObject.
 				{
-					origParent.position = origParentPosition;
 					flightCamera.transform.localPosition = origLocalPosition;
 					flightCamera.transform.localRotation = origLocalRotation;
 					flightCamera.SetDistanceImmediate(origDistance);
@@ -2521,11 +2519,11 @@ namespace CameraTools
 			origLocalPosition = flightCamera.transform.localPosition;
 			origLocalRotation = flightCamera.transform.localRotation;
 			origParent = flightCamera.transform.parent;
-			origParentPosition = origParent.position;
 			origNearClip = HighLogic.LoadedSceneIsFlight ? flightCamera.mainCamera.nearClipPlane : Camera.main.nearClipPlane;
 			origDistance = flightCamera.Distance;
 			origMode = flightCamera.mode;
 			origFov = flightCamera.FieldOfView;
+			if (DEBUG) Debug.Log($"[CameraTools]: Original camera saved. parent: {origParent.name}, mode: {origMode}, FOV: {origFov}, distance: {origDistance}, near: {origNearClip}");
 		}
 
 		void PostDeathRevert()
