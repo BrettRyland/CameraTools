@@ -377,7 +377,7 @@ namespace CameraTools.ModIntegration
 					{
 						if (t.Name == "BDGenericAIBase")
 						{
-							if (CamTools.DEBUG) Debug.Log("[CameraTools]: Found BDGenericAIBase type.");
+							if (CamTools.DEBUG) Debug.Log("[CameraTools.ModIntegration.BDArmory]: Found BDGenericAIBase type.");
 							return t;
 						}
 					}
@@ -397,7 +397,7 @@ namespace CameraTools.ModIntegration
 					{
 						if (t.Name == "MissileFire")
 						{
-							if (CamTools.DEBUG) Debug.Log("[CameraTools]: Found MissileFire type.");
+							if (CamTools.DEBUG) Debug.Log("[CameraTools.ModIntegration.BDArmory]: Found MissileFire type.");
 							return t;
 						}
 					}
@@ -472,7 +472,7 @@ namespace CameraTools.ModIntegration
 						return; // Still spawning.
 					else
 					{
-						Debug.Log("[CameraTools]: Deactivating CameraTools while spawning vessels.");
+						Debug.Log("[CameraTools.ModIntegration.BDArmory]: Deactivating CameraTools while spawning vessels.");
 						autoEnableOverride = true;
 						camTools.RevertCamera();
 						return;
@@ -485,7 +485,7 @@ namespace CameraTools.ModIntegration
 						return; // Still warping.
 					else
 					{
-						Debug.Log("[CameraTools]: Deactivating CameraTools while warping between rounds.");
+						Debug.Log("[CameraTools.ModIntegration.BDArmory]: Deactivating CameraTools while warping between rounds.");
 						autoEnableOverride = true;
 						camTools.RevertCamera();
 						return;
@@ -498,14 +498,14 @@ namespace CameraTools.ModIntegration
 				if (vessel == null || (hasPilotAI && vessel.LandedOrSplashed)) return; // Don't activate for landed/splashed planes.
 				if (bdCompetitionStartingFieldGetter != null && bdCompetitionStartingFieldGetter(bdCompetitionInstance))
 				{
-					Debug.Log("[CameraTools]: Activating CameraTools for BDArmory competition as competition is starting.");
+					Debug.Log("[CameraTools.ModIntegration.BDArmory]: Activating CameraTools for BDArmory competition as competition is starting.");
 					camTools.cameraActivate();
 					restoreDistanceLimit = bdRestoreDistanceLimitPropertyGetter != null ? (float)bdRestoreDistanceLimitPropertyGetter(null) : float.MaxValue;
 					return;
 				}
 				else if (bdCompetitionIsActiveFieldGetter != null && bdCompetitionIsActiveFieldGetter(bdCompetitionInstance))
 				{
-					Debug.Log("[CameraTools]: Activating CameraTools for BDArmory competition as competition is active.");
+					Debug.Log("[CameraTools.ModIntegration.BDArmory]: Activating CameraTools for BDArmory competition as competition is active.");
 					UpdateAIDogfightTarget();
 					camTools.cameraActivate();
 					restoreDistanceLimit = bdRestoreDistanceLimitPropertyGetter != null ? (float)bdRestoreDistanceLimitPropertyGetter(null) : float.MaxValue;
@@ -514,7 +514,7 @@ namespace CameraTools.ModIntegration
 			}
 			catch (Exception e)
 			{
-				Debug.LogError("[CameraTools]: Checking competition state of BDArmory failed: " + e.Message);
+				Debug.LogError("[CameraTools.ModIntegration.BDArmory]: Checking competition state of BDArmory failed: " + e.Message);
 				CheckForBDA();
 			}
 		}
@@ -537,7 +537,7 @@ namespace CameraTools.ModIntegration
 				if (f.Name == "incomingThreatVessel")
 				{
 					bdWmThreatFieldGetter = ReflectionUtils.CreateGetter<object, Vessel>(f);
-					if (CamTools.DEBUG) Debug.Log($"[CameraTools]: Created bdWmThreatFieldGetter.");
+					if (CamTools.DEBUG) Debug.Log($"[CameraTools.ModIntegration.BDArmory]: Created bdWmThreatFieldGetter.");
 					return f;
 				}
 			}
@@ -555,7 +555,7 @@ namespace CameraTools.ModIntegration
 				if (f.Name == "incomingMissileVessel")
 				{
 					bdWmMissileFieldGetter = ReflectionUtils.CreateGetter<object, Vessel>(f);
-					if (CamTools.DEBUG) Debug.Log($"[CameraTools]: Created bdWmMissileFieldGetter.");
+					if (CamTools.DEBUG) Debug.Log($"[CameraTools.ModIntegration.BDArmory]: Created bdWmMissileFieldGetter.");
 					return f;
 				}
 			}
@@ -573,7 +573,7 @@ namespace CameraTools.ModIntegration
 				if (f.Name == "underFire")
 				{
 					bdWmUnderFireFieldGetter = ReflectionUtils.CreateGetter<object, bool>(f);
-					if (CamTools.DEBUG) Debug.Log($"[CameraTools]: Created bdWmUnderFireFieldGetter.");
+					if (CamTools.DEBUG) Debug.Log($"[CameraTools.ModIntegration.BDArmory]: Created bdWmUnderFireFieldGetter.");
 					return f;
 				}
 			}
@@ -591,7 +591,7 @@ namespace CameraTools.ModIntegration
 				if (f.Name == "underAttack")
 				{
 					bdWmUnderAttackFieldGetter = ReflectionUtils.CreateGetter<object, bool>(f);
-					if (CamTools.DEBUG) Debug.Log("[CameraTools]: Created bdWmUnderAttackFieldGetter.");
+					if (CamTools.DEBUG) Debug.Log("[CameraTools.ModIntegration.BDArmory]: Created bdWmUnderAttackFieldGetter.");
 					return f;
 				}
 			}
@@ -609,7 +609,7 @@ namespace CameraTools.ModIntegration
 				if (f.Name == "targetVessel")
 				{
 					bdAITargetFieldGetter = ReflectionUtils.CreateGetter<object, Vessel>(f);
-					if (CamTools.DEBUG) Debug.Log("[CameraTools]: Created bdAITargetFieldGetter.");
+					if (CamTools.DEBUG) Debug.Log("[CameraTools.ModIntegration.BDArmory]: Created bdAITargetFieldGetter.");
 					return f;
 				}
 			}
@@ -627,7 +627,7 @@ namespace CameraTools.ModIntegration
 				if (p != null && p.Name == "recentlyFiring")
 				{
 					bdWmRecentlyFiringPropertyGetter = ReflectionUtils.BuildGetAccessor(p.GetGetMethod());
-					if (CamTools.DEBUG) Debug.Log("[CameraTools]: Created bdWmRecentlyFiringPropertyGetter.");
+					if (CamTools.DEBUG) Debug.Log("[CameraTools.ModIntegration.BDArmory]: Created bdWmRecentlyFiringPropertyGetter.");
 					return p;
 				}
 			}
