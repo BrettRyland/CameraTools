@@ -1088,8 +1088,13 @@ namespace CameraTools
 			{
 				if (BDArmory.hasBDA && bdArmory.isBDMissile)
 				{
-					dogfightLastTargetPosition = bdArmory.GetMissileTargetedPosition();
-					if (dogfightLastTargetPosition == default) dogfightLastTarget = false;
+					var missileTargetPosition = bdArmory.GetMissileTargetedPosition();
+					if (missileTargetPosition == default) // If there's no target position, just do a velocity chase.
+					{
+						dogfightLastTarget = false;
+						dogfightVelocityChase = true;
+					}
+					else { dogfightLastTargetPosition = missileTargetPosition; }
 				}
 				else
 				{
