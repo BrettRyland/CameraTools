@@ -3,7 +3,11 @@ Improvements / Bugfixes:
 - Don't reset the original camera parent's position when reverting (fixes weird camera angle).
 - Override the camera restore distance with custom distance (from BDA) when reverting due to auto-enabling for BDA.
 - Add support for a new BDA helper property for inhibiting camera tools.
+- Add support for new BDA helpers for tracking missiles' targets in dogfight mode.
 - Minor tweaks to MouseAimFlight helpers.
+- Some internal restructuring of utils.
+- Begin adding localisation support.
+- Begin adding tooltips.
 
 v1.30.1
 Improvements / Bugfixes:

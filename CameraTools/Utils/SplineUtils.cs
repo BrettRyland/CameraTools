@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace CameraTools
+namespace CameraTools.Utils
 {
 	public static class SplineUtils
 	{

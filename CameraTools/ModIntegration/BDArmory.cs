@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.IO;
 using System.Reflection;
 using System;
 using UnityEngine;
 
+using CameraTools.Utils;
 
 namespace CameraTools.ModIntegration
 {
@@ -46,6 +46,8 @@ namespace CameraTools.ModIntegration
 		Func<object, object> bdVesselsSpawningPropertyGetter = null;
 		Func<object, object> bdInhibitCameraToolsPropertyGetter = null;
 		Func<object, object> bdRestoreDistanceLimitPropertyGetter = null;
+		Func<object, object> bdMissileTargetVesselPropertyGetter = null;
+		Func<object, object> bdMissileTargetPositionPropertyGetter = null;
 		Type bdBDATournamentType = null;
 		object bdBDATournamentInstance = null;
 		Func<object, bool> bdTournamentWarpInProgressFieldGetter = null;
@@ -128,6 +130,8 @@ namespace CameraTools.ModIntegration
 			bdVesselsSpawningPropertyGetter = null;
 			bdInhibitCameraToolsPropertyGetter = null;
 			bdRestoreDistanceLimitPropertyGetter = null;
+			bdMissileTargetVesselPropertyGetter = null;
+			bdMissileTargetPositionPropertyGetter = null;
 			bdLoadedVesselSwitcherVesselsPropertyGetter = null;
 			bdBDATournamentType = null;
 			bdBDATournamentInstance = null;
@@ -210,6 +214,12 @@ namespace CameraTools.ModIntegration
 												case "RestoreDistanceLimit":
 													bdRestoreDistanceLimitPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
 													break;
+												case "MissileTargetVessel":
+													bdMissileTargetVesselPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+													break;
+												case "MissileTargetPosition":
+													bdMissileTargetPositionPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+													break;
 											}
 										}
 									break;
@@ -284,6 +294,8 @@ namespace CameraTools.ModIntegration
 				if (p.GetComponent("MissileLauncher") || p.GetComponent("BDModularGuidance"))
 				{
 					isBDMissile = true;
+					AItargetUpdateTime = 0; // Reset the AI target update time so that it'll immediately check for a new target.
+					camTools.dogfightTarget = null; // Also, clear the dogfight target so that the debug messages are correct.
 					return;
 				}
 			}
@@ -367,6 +379,18 @@ namespace CameraTools.ModIntegration
 			return null;
 		}
 
+		Vessel GetMissileTargetedVessel()
+		{
+			if (!isBDMissile || bdMissileTargetVesselPropertyGetter == null) return null;
+			return (Vessel)bdMissileTargetVesselPropertyGetter(null);
+		}
+
+		public Vector3 GetMissileTargetedPosition()
+		{
+			if (!isBDMissile || bdMissileTargetPositionPropertyGetter == null) return default;
+			return (Vector3)bdMissileTargetPositionPropertyGetter(null);
+		}
+
 		Type GetAIModuleType()
 		{
 			foreach (var assy in AssemblyLoader.loadedAssemblies)
@@ -432,12 +456,28 @@ namespace CameraTools.ModIntegration
 			}
 			else if (isBDMissile && useBDAutoTarget)
 			{
-				camTools.dogfightTarget = null;
-				AItargetUpdateTime = Time.time;
-				if (CamTools.DEBUG)
+				if (Time.time - AItargetUpdateTime >= 0.1f) // Only update the missile's target vessel at most every 0.1s (gets reset on vessel switches).
 				{
-					var message = "Current vessel is a missile, using dogfight chase mode.";
-					CamTools.DebugLog(message);
+					newAITarget = GetMissileTargetedVessel();
+					if (CamTools.DEBUG)
+					{
+						if (newAITarget == null)
+						{
+							if (camTools.dogfightTarget)
+							{
+								var position = GetMissileTargetedPosition();
+								if (position == default) CamTools.DebugLog("Missile has no target, using dogfight chase mode.");
+								else CamTools.DebugLog($"Missile is targeting position {position}.");
+							}
+						}
+						else if (newAITarget != camTools.dogfightTarget)
+						{
+							if (camTools.dogfightTarget) CamTools.DebugLog($"Missile switched target to {newAITarget.vesselName} from {camTools.dogfightTarget.vesselName}");
+							else CamTools.DebugLog($"Missile is targeting {newAITarget.vesselName}");
+						}
+					}
+					camTools.dogfightTarget = newAITarget;
+					AItargetUpdateTime = Time.time;
 				}
 			}
 		}

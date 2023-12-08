@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Globalization;
 
-namespace CameraTools
+namespace CameraTools.Utils
 {
 	public static class MathUtils
 	{

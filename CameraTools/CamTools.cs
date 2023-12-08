@@ -7,6 +7,9 @@ using System;
 using UnityEngine;
 
 using CameraTools.ModIntegration;
+using CameraTools.Utils;
+
+using static CameraTools.Utils.StringUtils; // For shorter localisation
 
 namespace CameraTools
 {
@@ -43,6 +46,9 @@ namespace CameraTools
 		Vessel.Situations lastVesselSituation = Vessel.Situations.FLYING;
 		[CTPersistantField] public static bool DEBUG = false;
 		[CTPersistantField] public static bool DEBUG2 = false;
+		[CTPersistantField] public static bool ShowTooltips = false;
+		string tooltip;
+		Rect tooltipRect = new();
 
 		string message;
 		bool vesselSwitched = false;
@@ -985,6 +991,11 @@ namespace CameraTools
 			{
 				dogfightVelocityChase = false;
 			}
+			else if (BDArmory.hasBDA && bdArmory.isBDMissile)
+			{
+				dogfightLastTarget = true;
+				dogfightVelocityChase = false;
+			}
 			else
 			{
 				if (false && randomMode && rng.Next(3) == 0)
@@ -1075,16 +1086,24 @@ namespace CameraTools
 			}
 			else if (dogfightLastTarget)
 			{
-				if (!FloatingOrigin.Offset.IsZero() || !Krakensbane.GetFrameVelocity().IsZero())
-				{ dogfightLastTargetPosition -= FloatingOrigin.OffsetNonKrakensbane; }
-				dogfightLastTargetPosition += dogfightLastTargetVelocity * TimeWarp.fixedDeltaTime;
+				if (BDArmory.hasBDA && bdArmory.isBDMissile)
+				{
+					dogfightLastTargetPosition = bdArmory.GetMissileTargetedPosition();
+					if (dogfightLastTargetPosition == default) dogfightLastTarget = false;
+				}
+				else
+				{
+					if (!FloatingOrigin.Offset.IsZero() || !Krakensbane.GetFrameVelocity().IsZero())
+					{ dogfightLastTargetPosition -= FloatingOrigin.OffsetNonKrakensbane; }
+					dogfightLastTargetPosition += dogfightLastTargetVelocity * TimeWarp.fixedDeltaTime;
+				}
 			}
 			cameraParent.transform.position = vessel.CoM;
 
 			if (dogfightVelocityChase)
 			{
 				var lastDogfightLastTargetPosition = dogfightLastTargetPosition;
-				if (vessel.Speed() > 1)
+				if (vessel.Speed() > 1 && !vessel.InOrbit())
 				{
 					dogfightLastTargetPosition = vessel.CoM + vessel.Velocity().normalized * 5000f;
 				}
@@ -1344,7 +1363,7 @@ namespace CameraTools
 				}
 			}
 
-			if (BDArmory.hasBDA && bdArmory.hasBDAI && (bdArmory.useBDAutoTarget || (bdArmory.useCentroid && bdArmory.bdWMVessels.Count < 2)))
+			if (BDArmory.hasBDA && (bdArmory.hasBDAI || bdArmory.isBDMissile) && (bdArmory.useBDAutoTarget || (bdArmory.useCentroid && bdArmory.bdWMVessels.Count < 2)))
 			{
 				bdArmory.UpdateAIDogfightTarget(); // Using delegates instead of reflection allows us to check every frame.
 				if (vessel.LandedOrSplashed)
@@ -2569,6 +2588,11 @@ namespace CameraTools
 				{
 					PathSelectorWindow();
 				}
+
+				if (ShowTooltips && !string.IsNullOrEmpty(tooltip))
+				{
+					tooltipRect = GUILayout.Window(GUIUtility.GetControlID(FocusType.Passive), tooltipRect, ShowTooltip, "", GUIStyle.none);
+				}
 			}
 			if (DEBUG)
 			{
@@ -2624,8 +2648,8 @@ namespace CameraTools
 		{
 			GUI.DragWindow(new Rect(0, 0, windowWidth, draggableHeight));
 
-			GUI.Label(new Rect(0, contentTop, windowWidth, 40), "Camera Tools", titleStyle);
-			GUI.Label(new Rect(windowWidth / 2f, contentTop + 35f, windowWidth / 2f - leftIndent - entryHeight, entryHeight), $"Version: {Version}", watermarkStyle);
+			GUI.Label(new Rect(0, contentTop, windowWidth, 40), Localize("#LOC_CameraTools"), titleStyle);
+			GUI.Label(new Rect(windowWidth / 2f, contentTop + 35f, windowWidth / 2f - leftIndent - entryHeight, entryHeight), $"{Localize("#LOC_CameraTools_Version")}: {Version}", watermarkStyle);
 			if (GUI.Toggle(new Rect(windowWidth - leftIndent - 14f, contentTop + 31f, 20f, 20f), cameraToolActive, "") != cameraToolActive)
 			{
 				if (cameraToolActive)
@@ -2648,18 +2672,23 @@ namespace CameraTools
 			float parseResult;
 
 			//tool mode switcher
-			GUI.Label(LabelRect(++line), "Tool: " + toolMode.ToString(), leftLabelBold);
-			if (GUI.Button(new Rect(leftIndent, contentTop + (++line * entryHeight), 25, entryHeight - 2), "<"))
+			GUI.Label(LabelRect(++line), $"{Localize("#LOC_CameraTools_Tool")}: {toolMode}", leftLabelBold);
+			if (GUI.Button(new Rect(leftIndent, contentTop + (++line * entryHeight), 25, entryHeight - 2), LocTip("#LOC_CameraTools_PrevMode")))
 			{
 				CycleToolMode(false);
 				if (cameraToolActive) cameraActivate();
 			}
-			if (GUI.Button(new Rect(leftIndent + 25 + 4, contentTop + (line * entryHeight), 25, entryHeight - 2), ">"))
+			if (GUI.Button(new Rect(leftIndent + 25 + 4, contentTop + (line * entryHeight), 25, entryHeight - 2), LocTip("#LOC_CameraTools_NextMode")))
 			{
 				CycleToolMode(true);
 				if (cameraToolActive) cameraActivate();
 			}
-			if (GUI.Button(new Rect(windowWidth - leftIndent - 25, contentTop + (line * entryHeight), 25, entryHeight - 2), "#", textInput ? GUI.skin.box : GUI.skin.button))
+			if (GUI.Button(new Rect(windowWidth - leftIndent - 54, contentTop + (line * entryHeight), 25, entryHeight - 2), Localize("#LOC_CameraTools_ShowTooltips"), ShowTooltips ? GUI.skin.box : GUI.skin.button))
+			{
+				ShowTooltips = !ShowTooltips;
+				if (!ShowTooltips) tooltip = "";
+			}
+			if (GUI.Button(new Rect(windowWidth - leftIndent - 25, contentTop + (line * entryHeight), 25, entryHeight - 2), LocTip("#LOC_CameraTools_ToggleTextFields"), textInput ? GUI.skin.box : GUI.skin.button))
 			{
 				textInput = !textInput;
 				if (!textInput) // Set the fields to their currently showing values.
@@ -2707,17 +2736,17 @@ namespace CameraTools
 			}
 			line++;
 
-			useAudioEffects = GUI.Toggle(LabelRect(++line), useAudioEffects, "Enable Audio Effects");
-			if (enableVFX != (enableVFX = GUI.Toggle(LabelRect(++line), enableVFX, "Enable Visual Effects")))
+			useAudioEffects = GUI.Toggle(LabelRect(++line), useAudioEffects, LocTip("#LOC_CameraTools_AudioEffects"));
+			if (enableVFX != (enableVFX = GUI.Toggle(LabelRect(++line), enableVFX, LocTip("#LOC_CameraTools_VisualEffects"))))
 			{
 				if (cameraToolActive) origParent.position = enableVFX ? cameraParent.transform.position : FlightGlobals.currentMainBody.position; // Set the origParent to the centre of the current mainbody to make sure it's out of range for FX to take effect.
 			}
-			if (BDArmory.hasBDA) bdArmory.autoEnableForBDA = GUI.Toggle(LabelRect(++line), bdArmory.autoEnableForBDA, "Auto-Enable for BDArmory");
+			if (BDArmory.hasBDA) bdArmory.autoEnableForBDA = GUI.Toggle(LabelRect(++line), bdArmory.autoEnableForBDA, LocTip("#LOC_CameraTools_AutoEnableForBDA"));
 
 			line++;
 			if (autoFOV && toolMode != ToolModes.Pathing)
 			{
-				GUI.Label(LeftRect(++line), "Autozoom Margin: ");
+				GUI.Label(LeftRect(++line), LocTip("#LOC_CameraTools_AutozoomMargin"));
 				if (!textInput)
 				{
 					autoZoomMargin = GUI.HorizontalSlider(new Rect(leftIndent, contentTop + ((++line) * entryHeight), contentWidth - 45, entryHeight), autoZoomMargin, 0, autoZoomMarginMax);
@@ -3311,6 +3340,26 @@ namespace CameraTools
 			//fix length
 			windowHeight = contentTop + (line * entryHeight) + entryHeight + entryHeight;
 			windowRect.height = windowHeight;// = new Rect(windowRect.x, windowRect.y, windowWidth, windowHeight);
+
+			// Tooltips
+			if (ShowTooltips && Event.current.type == EventType.Repaint && tooltip != GUI.tooltip)
+			{
+				tooltip = GUI.tooltip; // Store the tooltip so we can show it externally to the window.
+				new GUIContent(GUI.tooltip);
+				tooltipRect.position = Event.current.mousePosition + windowRect.position;
+				var lines = tooltip.Split('\n');
+				tooltipRect.width = lines.Max(l => GUI.skin.box.CalcSize(new GUIContent(l)).x);
+				tooltipRect.height = entryHeight * lines.Length;
+				tooltipRect.x = Mathf.Clamp(tooltipRect.x - tooltipRect.width - 20, 5, Screen.width - tooltipRect.width - 5);
+				tooltipRect.y = Mathf.Clamp(tooltipRect.y - tooltipRect.height - 10, 5, Screen.height - tooltipRect.height - 5);
+			}
+		}
+
+		void ShowTooltip(int windowID)
+		{
+			GUILayout.BeginVertical();
+			GUILayout.Label(tooltip, GUI.skin.box);
+			GUILayout.EndVertical();
 		}
 
 		string KeyBinding(string current, string label, float line)

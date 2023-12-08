@@ -10,7 +10,7 @@
 using System;
 using UnityEngine;
 
-namespace CameraTools
+namespace CameraTools.Utils
 {
 	public class CCInputUtils
 	{

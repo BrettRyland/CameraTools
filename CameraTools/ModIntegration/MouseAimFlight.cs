@@ -2,6 +2,8 @@ using UnityEngine;
 using System;
 using System.Reflection;
 
+using CameraTools.Utils;
+
 namespace CameraTools.ModIntegration
 {
 	[KSPAddon(KSPAddon.Startup.Flight, false)]

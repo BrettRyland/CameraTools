@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
 
+using CameraTools.Utils;
+
 namespace CameraTools
 {
 	public enum PositionInterpolationType { Linear, CubicSpline };

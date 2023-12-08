@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace CameraTools
+namespace CameraTools.Utils
 {
 	/// <summary>
 	/// Using delegates to speed up reflection for frequently accessed properties and fields.

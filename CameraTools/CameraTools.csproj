@@ -52,7 +52,6 @@
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Compile Include="CCInputUtils.cs" />
     <Compile Include="CTAtmosphericAudioController.cs" />
     <Compile Include="CTPartAudioController.cs" />
     <Compile Include="CTPersistantFIeld.cs" />
@@ -62,17 +61,19 @@
     <Compile Include="CameraTransformation.cs" />
     <Compile Include="Curve3D.cs" />
     <Compile Include="InputField.cs" />
-    <Compile Include="MathUtils.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RotationAnimation.cs" />
-    <Compile Include="ReflectionUtils.cs" />
-    <Compile Include="SplineUtils.cs" />
-    <Compile Include="Vector3Animation.cs" />
-    <Compile Include="VesselExtensions.cs" />
     <Compile Include="ModIntegration\BDArmory.cs" />
     <Compile Include="ModIntegration\BetterTimeWarp.cs" />
     <Compile Include="ModIntegration\MouseAimFlight.cs" />
     <Compile Include="ModIntegration\TimeControl.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RotationAnimation.cs" />
+    <Compile Include="Utils\CCInputUtils.cs" />
+    <Compile Include="Utils\MathUtils.cs" />
+    <Compile Include="Utils\ReflectionUtils.cs" />
+    <Compile Include="Utils\SplineUtils.cs" />
+    <Compile Include="Utils\StringUtils.cs" />
+    <Compile Include="Vector3Animation.cs" />
+    <Compile Include="VesselExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">

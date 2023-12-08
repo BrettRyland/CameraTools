@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
-using System;
+
+using CameraTools.Utils;
+
 namespace CameraTools
 {
 	public enum RotationInterpolationType
