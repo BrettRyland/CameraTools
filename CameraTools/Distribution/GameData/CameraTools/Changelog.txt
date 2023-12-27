@@ -1,3 +1,6 @@
+Improvements / Bugfixes:
+- Improvements to death camera angles for dogfight mode.
+
 v1.31.0
 Improvements / Bugfixes:
 - Fix NREs from atmospheric audiosources when not in atmosphere.

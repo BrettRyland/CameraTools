@@ -152,6 +152,9 @@ namespace CameraTools
 		//retaining position and rotation after vessel destruction
 		GameObject deathCam;
 		Vector3 deathCamVelocity;
+		Vector3 deathCamTargetVelocity;
+		float deathCamDecayFactor = 0.8f;
+		Vessel deathCamTarget = null;
 		Vector3d floatingKrakenAdjustment = Vector3d.zero; // Position adjustment for Floating origin and Krakensbane velocity changes.
 		public delegate void ResetCTools();
 		public static event ResetCTools OnResetCTools;
@@ -528,7 +531,7 @@ namespace CameraTools
 			// - Below 100km, there is a small unsteady drift when not in high warp (exagerated by low warp) and once present continues after entering high warp.
 			// - Switching in and out of map mode isn't showing the vessel on returning.
 			if (GameIsPaused) return;
-			if (vessel == null) return;
+			if (vessel == null || !vessel.gameObject.activeInHierarchy) return;
 			if (cameraToolActive)
 			{
 				var inHighWarp = (TimeWarp.WarpMode == TimeWarp.Modes.HIGH && TimeWarp.CurrentRate > 1);
@@ -754,19 +757,22 @@ namespace CameraTools
 			if (BDArmory.IsInhibited) return; // Don't do anything else while BDA is inhibiting us.
 			if (cameraToolActive)
 			{
-				switch (toolMode)
+				if (!hasDied)
 				{
-					case ToolModes.StationaryCamera:
-						UpdateStationaryCamera();
-						break;
-					case ToolModes.Pathing:
-						if (useRealTime)
-							UpdatePathingCam();
-						break;
-					case ToolModes.DogfightCamera: // Dogfight mode is mostly handled in FixedUpdate due to relying on interpolation of positions updated in the physics update.
-						break;
-					default:
-						break;
+					switch (toolMode)
+					{
+						case ToolModes.StationaryCamera:
+							UpdateStationaryCamera();
+							break;
+						case ToolModes.Pathing:
+							if (useRealTime)
+								UpdatePathingCam();
+							break;
+						case ToolModes.DogfightCamera: // Dogfight mode is mostly handled in FixedUpdate due to relying on interpolation of positions updated in the physics update.
+							break;
+						default:
+							break;
+					}
 				}
 				if (enableVFX) origParent.position = cameraParent.transform.position; // KSP's aero FX are only enabled when close to the origParent's position.
 			}
@@ -803,9 +809,17 @@ namespace CameraTools
 						RevertCamera();
 					}
 				}
+				else if (hasDied)
+				{
+					deathCamVelocity = (deathCamVelocity - deathCamTargetVelocity) * deathCamDecayFactor + deathCamTargetVelocity; // Slow down to the target velocity.
+					deathCam.transform.position += deathCamVelocity * TimeWarp.fixedDeltaTime;
+					if (toolMode == ToolModes.DogfightCamera && deathCamTarget && deathCamTarget.gameObject.activeInHierarchy)
+					{
+						flightCamera.transform.rotation = Quaternion.Slerp(flightCamera.transform.rotation, Quaternion.LookRotation(deathCamTarget.transform.position - deathCam.transform.position, cameraUp), dogfightLerp / 2f);
+					}
+					return; // Do nothing else until we have an active vessel.
+				}
 			}
-
-			if (hasDied && cameraToolActive) return; // Do nothing until we have an active vessel.
 
 			if (vessel == null || vessel != FlightGlobals.ActiveVessel)
 			{
@@ -892,8 +906,6 @@ namespace CameraTools
 			if (BDArmory.IsInhibited) return; // Don't do anything else while BDA is inhibiting us.
 			if (hasDied && cameraToolActive)
 			{
-				deathCam.transform.position += deathCamVelocity * TimeWarp.deltaTime;
-				deathCamVelocity *= 0.95f;
 				if (flightCamera.transform.parent != deathCam.transform) // Something else keeps trying to steal the camera after the vessel has died, so we need to keep overriding it.
 				{
 					SetDeathCam();
@@ -2216,7 +2228,6 @@ namespace CameraTools
 					shakeOffset = Mathf.Sin(shakeMagnitude * 20 * Time.time) * (shakeMagnitude / 10) * shakeAxis;
 				}
 
-
 				flightCamera.transform.rotation = Quaternion.AngleAxis((shakeMultiplier / 2) * shakeMagnitude / 50f, Vector3.ProjectOnPlane(UnityEngine.Random.onUnitSphere, flightCamera.transform.forward)) * flightCamera.transform.rotation;
 			}
 
@@ -2389,6 +2400,7 @@ namespace CameraTools
 			cockpitView = false;
 			cockpits.Clear();
 			engines.Clear();
+			hasDied = false;
 
 			if (BDArmory.hasBDA)
 			{
@@ -3597,16 +3609,55 @@ namespace CameraTools
 		#region Utils
 		void CurrentVesselWillDestroy(Vessel v)
 		{
-			if (vessel == v && cameraToolActive)
+			if (!hasDied && cameraToolActive && vessel == v)
 			{
 				hasDied = true;
 				diedTime = Time.time;
+				deathCamTarget = null;
 
-				// Something borks the camera position/rotation when the target/parent is set to none/null. This fixes that.
-				deathCamVelocity = (vessel.radarAltitude > 10d ? vessel.Velocity() : Vector3d.zero) / 2f; // Track the explosion a bit.
+				if (toolMode == ToolModes.DogfightCamera)
+				{
+					// Something borks the camera position/rotation when the target/parent is set to none/null. This fixes that.
+					float atmoFactor = (float)(vessel.atmDensity / FlightGlobals.GetBodyByName("Kerbin").atmDensityASL); // 0 in space, 1 at Kerbin sea level.
+					float alpha = 0, beta = 0;
+					if (bdArmory.isBDMissile)
+					{
+						if (dogfightTarget != null)
+						{
+							var distanceSqr = (vessel.transform.position - dogfightTarget.transform.position).sqrMagnitude - flightCamera.Distance * flightCamera.Distance / 4f;
+							alpha = Mathf.Clamp01(distanceSqr / 1e4f); // Within 100m, start at close to the target's velocity
+							beta = Mathf.Clamp01(distanceSqr / 4f / (float)(v.Velocity() - dogfightTarget.Velocity()).sqrMagnitude); // Within 2s, end at close to the target's velocity
+							deathCamVelocity = (1 - atmoFactor / 2) * ((1 - alpha) * dogfightTarget.Velocity() + alpha * vessel.Velocity());
+							deathCamTargetVelocity = (1 - atmoFactor) * ((1 - beta) * dogfightTarget.Velocity() + beta * vessel.Velocity());
+							deathCamDecayFactor = 0.9f - 0.2f * Mathf.Clamp01(atmoFactor);
+							deathCamTarget = dogfightTarget;
+						}
+						else
+						{
+							deathCamVelocity = (1 - Mathf.Clamp01(atmoFactor) / 2) * vessel.Velocity();
+							deathCamTargetVelocity = (1 - Mathf.Clamp01(atmoFactor)) * deathCamVelocity;
+							deathCamDecayFactor = 1 / (1 + atmoFactor); // Same as the explosion decay rate in BDA.
+						}
+					}
+					else
+					{
+						deathCamVelocity = vessel.radarAltitude < 10d ? Vector3d.zero : (1 - Mathf.Clamp01(atmoFactor) / 2) * vessel.Velocity(); // Track the explosion a bit.
+						deathCamTargetVelocity = (1 - Mathf.Clamp01(atmoFactor)) * deathCamVelocity;
+						deathCamDecayFactor = 1 / (1 + atmoFactor / 2); // Slower than the explosion decay rate in BDA.
+					}
+					if (DEBUG)
+					{
+						message = $"Activating death camera with speed {deathCamVelocity.magnitude:F1}m/s, target speed {deathCamTargetVelocity.magnitude:F1}m/s and decay factor {deathCamDecayFactor:F3} (missile: {bdArmory.isBDMissile} ({v.Velocity().magnitude:F1}), target: {(dogfightTarget ? $"{dogfightTarget.vesselName} ({dogfightTarget.Velocity().magnitude:F1})" : "null")}, atmoFactor: {atmoFactor}, alpha: {alpha}, beta: {beta}).";
+					}
+				}
+				else
+				{
+					deathCamVelocity = Vector3.zero;
+					deathCamTargetVelocity = Vector3.zero;
+					if (DEBUG) message = $"Activating stationary death camera for camera mode {toolMode}.";
+				}
 				if (DEBUG)
 				{
-					message = $"Activating death camera with speed {deathCamVelocity.magnitude:G3}m/s.";
 					Debug.Log("[CameraTools]: " + message);
 					DebugLog(message);
 				}
