@@ -625,6 +625,7 @@ namespace CameraTools
 									floatingKrakenAdjustment = -FloatingOrigin.OffsetNonKrakensbane;
 									lastVesselCoM += floatingKrakenAdjustment;
 									lastCamParentPosition += floatingKrakenAdjustment;
+									if (hasDied) deathCam.transform.position += floatingKrakenAdjustment;
 								}
 							}
 							break;
