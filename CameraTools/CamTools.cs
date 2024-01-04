@@ -2913,6 +2913,10 @@ namespace CameraTools
 			}
 
 			++line;
+			if (toolMode != ToolModes.Pathing)
+			{
+				autoFOV = GUI.Toggle(LabelRect(++line), autoFOV, Localize("Autozoom"));
+			}
 			if (autoFOV && toolMode != ToolModes.Pathing)
 			{
 				GUI.Label(LeftRect(++line), Localize("AutozoomMargin"));
@@ -2941,10 +2945,6 @@ namespace CameraTools
 					inputFields["zoomFactor"].tryParseValue(GUI.TextField(RightRect(line), inputFields["zoomFactor"].possibleValue, 8, inputFieldStyle));
 					zoomExp = Mathf.Log(inputFields["zoomFactor"].currentValue) + 1f;
 				}
-			}
-			if (toolMode != ToolModes.Pathing)
-			{
-				autoFOV = GUI.Toggle(LabelRect(++line), autoFOV, Localize("Autozoom"));
 			}
 
 			GUI.Label(LeftRect(++line), Localize("CameraShake"));
