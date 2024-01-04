@@ -149,6 +149,8 @@ namespace CameraTools
 		float diedTime = 0;
 		//retaining position and rotation after vessel destruction
 		GameObject deathCam;
+		Vector3 deathCamPosition; // Local copies to avoid interacting with the transform all the time.
+		Quaternion deathCamRotation;
 		Vector3 deathCamVelocity;
 		Vector3 deathCamTargetVelocity;
 		float deathCamDecayFactor = 0.8f;
@@ -426,8 +428,8 @@ namespace CameraTools
 			{
 				vessel = FlightGlobals.ActiveVessel;
 				cameraParent.transform.position = vessel.CoM;
-				deathCam.transform.position = vessel.CoM;
-				deathCam.transform.rotation = vessel.transform.rotation;
+				deathCamPosition = vessel.CoM;
+				deathCamRotation = vessel.transform.rotation;
 			}
 			GameEvents.onVesselChange.Add(SwitchToVessel);
 			GameEvents.onVesselWillDestroy.Add(CurrentVesselWillDestroy);
@@ -505,8 +507,8 @@ namespace CameraTools
 					cockpitView = false; // Don't go back into cockpit view in case it was triggered by the user.
 					cameraToolActive = true;
 					RevertCamera();
-					flightCamera.transform.position = deathCam.transform.position;
-					flightCamera.transform.rotation = deathCam.transform.rotation;
+					flightCamera.transform.position = deathCamPosition;
+					flightCamera.transform.rotation = deathCamRotation;
 					if (!revertWhenInFlightMode)
 					{
 						if (CameraManager.Instance.previousCameraMode == CameraManager.CameraMode.Map) StartCoroutine(DelayActivation(1, false)); // Something messes with the camera position on the first frame after switching.
@@ -573,7 +575,8 @@ namespace CameraTools
 								floatingKrakenAdjustment += (vessel.srf_velocity - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime;
 							else if (!inHighWarp && useObtVel != wasUsingObtVel) // Only needed when crossing the boundary.
 								floatingKrakenAdjustment += ((useObtVel ? vessel.obt_velocity : vessel.srf_velocity) - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime;
-							cameraParent.transform.position += floatingKrakenAdjustment;
+							if (hasDied) deathCamPosition += floatingKrakenAdjustment;
+							else cameraParent.transform.position += floatingKrakenAdjustment;
 							// if (DEBUG2 && !GameIsPaused)
 							// {
 							// 	var cmb = FlightGlobals.currentMainBody;
@@ -653,7 +656,7 @@ namespace CameraTools
 									floatingKrakenAdjustment = -FloatingOrigin.OffsetNonKrakensbane;
 									lastVesselCoM += floatingKrakenAdjustment;
 									lastCamParentPosition += floatingKrakenAdjustment;
-									if (hasDied) deathCam.transform.position += floatingKrakenAdjustment;
+									if (hasDied) deathCamPosition += floatingKrakenAdjustment;
 								}
 							}
 							break;
@@ -839,11 +842,12 @@ namespace CameraTools
 				else if (hasDied)
 				{
 					deathCamVelocity = (deathCamVelocity - deathCamTargetVelocity) * deathCamDecayFactor + deathCamTargetVelocity; // Slow down to the target velocity.
-					deathCam.transform.position += deathCamVelocity * TimeWarp.fixedDeltaTime;
+					deathCamPosition += deathCamVelocity * TimeWarp.fixedDeltaTime;
 					if (toolMode == ToolModes.DogfightCamera && deathCamTarget && deathCamTarget.gameObject.activeInHierarchy)
 					{
-						flightCamera.transform.rotation = Quaternion.Slerp(flightCamera.transform.rotation, Quaternion.LookRotation(deathCamTarget.transform.position - deathCam.transform.position, cameraUp), dogfightLerp / 16f); // Slower rotation around the death location.
+						deathCamRotation = Quaternion.Slerp(deathCamRotation, Quaternion.LookRotation(deathCamTarget.transform.position - deathCamPosition, cameraUp), dogfightLerp / 8f); // Slower rotation around the death location.
 					}
+					deathCam.transform.SetPositionAndRotation(deathCamPosition, deathCamRotation);
 					return; // Do nothing else until we have an active vessel.
 				}
 			}
@@ -944,12 +948,12 @@ namespace CameraTools
 				{
 					case CameraManager.CameraMode.IVA:
 						var IVACamera = CameraManager.GetCurrentCamera();
-						deathCam.transform.position = IVACamera.transform.position;
-						deathCam.transform.rotation = IVACamera.transform.rotation;
+						deathCamPosition = IVACamera.transform.position;
+						deathCamRotation = IVACamera.transform.rotation;
 						break;
 					case CameraManager.CameraMode.Flight:
-						deathCam.transform.position = flightCamera.transform.position;
-						deathCam.transform.rotation = flightCamera.transform.rotation;
+						deathCamPosition = flightCamera.transform.position;
+						deathCamRotation = flightCamera.transform.rotation;
 						break;
 				}
 			}
@@ -981,8 +985,8 @@ namespace CameraTools
 			{
 				SaveOriginalCamera();
 			}
-			deathCam.transform.position = flightCamera.transform.position;
-			deathCam.transform.rotation = flightCamera.transform.rotation;
+			deathCamPosition = flightCamera.transform.position;
+			deathCamRotation = flightCamera.transform.rotation;
 			if (toolMode == ToolModes.StationaryCamera)
 			{
 				StartStationaryCamera();
@@ -3792,11 +3796,13 @@ namespace CameraTools
 		{
 			if (DEBUG) Debug.Log($"[CameraTools]: Setting the death camera.");
 			flightCamera.SetTargetNone();
+			deathCam.transform.SetPositionAndRotation(deathCamPosition, deathCamRotation);
 			flightCamera.transform.parent = deathCam.transform;
 			cameraParentWasStolen = false;
 			flightCamera.DeactivateUpdate();
-			flightCamera.transform.localPosition = Vector3.zero;
+			flightCamera.transform.localPosition = Vector3.zero; // We manipulate the deathCam transform and leave the flightCamera transform local values at their defaults.
 			flightCamera.transform.localRotation = Quaternion.identity;
+			flightCamera.SetFoV(currentFOV); // Set the FOV back to whatever we last had (when the camera parent gets stolen, this reverts).
 		}
 
 		public static bool GameIsPaused
