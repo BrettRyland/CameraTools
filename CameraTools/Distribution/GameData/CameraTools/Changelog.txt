@@ -5,6 +5,7 @@ Improvements / Bugfixes:
 - Add a button for resetting the camera roll (in stationary and pathing modes).
 - Optimisations to use vessel.CoM instead of vessel.transform.position where applicable.
 - Apply maxRelV to the stationary camera when using Random mode.
+- Adjust default settings for a dynamic dogfight mode.
 - Finish adding English (en-us) localisation and tooltips.
 
 v1.31.0

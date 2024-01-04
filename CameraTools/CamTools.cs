@@ -101,8 +101,8 @@ namespace CameraTools
 		float keyframeEditorWindowHeight = 160f;
 		[CTPersistantField] public ToolModes toolMode = ToolModes.StationaryCamera;
 		[CTPersistantField] public bool randomMode = false;
-		[CTPersistantField] public float randomModeDogfightChance = 75f;
-		[CTPersistantField] public float randomModeIVAChance = 5f;
+		[CTPersistantField] public float randomModeDogfightChance = 70f;
+		[CTPersistantField] public float randomModeIVAChance = 10f;
 		[CTPersistantField] public float randomModeStationaryChance = 20f;
 		[CTPersistantField] public float randomModePathingChance = 0f;
 		Rect windowRect = new Rect(0, 0, 0, 0);
@@ -180,21 +180,21 @@ namespace CameraTools
 		#region Camera Shake
 		Vector3 shakeOffset = Vector3.zero;
 		float shakeMagnitude = 0;
-		[CTPersistantField] public float shakeMultiplier = 1;
+		[CTPersistantField] public float shakeMultiplier = 0;
 		#endregion
 
 		#region Dogfight Camera Fields
 		Vessel dogfightPrevTarget;
 		public Vessel dogfightTarget;
-		[CTPersistantField] public float dogfightDistance = 30f;
+		[CTPersistantField] public float dogfightDistance = 50f;
 		[CTPersistantField] public float dogfightMaxDistance = 100;
-		[CTPersistantField] public float dogfightOffsetX = 10f;
-		[CTPersistantField] public float dogfightOffsetY = 4f;
+		[CTPersistantField] public float dogfightOffsetX = 0f;
+		[CTPersistantField] public float dogfightOffsetY = 5f;
 		[CTPersistantField] public float dogfightMaxOffset = 50;
-		[CTPersistantField] public bool dogfightInertialChaseMode = false;
+		[CTPersistantField] public bool dogfightInertialChaseMode = true;
 		[CTPersistantField] public float dogfightLerp = 0.2f;
-		[CTPersistantField] public float dogfightRoll = 0f;
-		[CTPersistantField] public float dogfightInertialFactor = 0f;
+		[CTPersistantField] public float dogfightRoll = 0.2f;
+		[CTPersistantField] public float dogfightInertialFactor = 0.05f;
 		Vector3 dogfightLerpDelta = default;
 		Vector3 dogfightLerpMomentum = default;
 		Quaternion dogfightCameraRoll = Quaternion.identity;
@@ -467,13 +467,13 @@ namespace CameraTools
 			{
 				wasActiveBeforeModeChange = cameraToolActive;
 				cameraToolActive = false;
-				if (wasActiveBeforeModeChange) Debug.Log($"[CameraTools]: Deactivating due to switching to {mode} camera mode.");
+				if (DEBUG && wasActiveBeforeModeChange) Debug.Log($"[CameraTools]: Deactivating due to switching to {mode} camera mode.");
 			}
 			else if (mode == CameraManager.CameraMode.Flight)
 			{
 				if ((wasActiveBeforeModeChange || activateWhenInFlightMode) && !autoEnableOverriden && !bdArmory.autoEnableOverride)
 				{
-					Debug.Log($"[CameraTools]: Camera mode changed to {mode}, reactivating {toolMode}.");
+					if (DEBUG) Debug.Log($"[CameraTools]: Camera mode changed to {mode}, reactivating {toolMode}.");
 					cockpitView = false; // Don't go back into cockpit view in case it was triggered by the user.
 					cameraToolActive = true;
 					RevertCamera();
@@ -487,7 +487,7 @@ namespace CameraTools
 				}
 				else if (revertWhenInFlightMode)
 				{
-					Debug.Log($"[CameraTools]: Camera mode changed to {mode}, applying delayed revert.");
+					if (DEBUG) Debug.Log($"[CameraTools]: Camera mode changed to {mode}, applying delayed revert.");
 					cockpitView = false; // Don't go back into cockpit view in case it was triggered by the user.
 					cameraToolActive = true;
 					RevertCamera();
@@ -813,7 +813,7 @@ namespace CameraTools
 					deathCam.transform.position += deathCamVelocity * TimeWarp.fixedDeltaTime;
 					if (toolMode == ToolModes.DogfightCamera && deathCamTarget && deathCamTarget.gameObject.activeInHierarchy)
 					{
-						flightCamera.transform.rotation = Quaternion.Slerp(flightCamera.transform.rotation, Quaternion.LookRotation(deathCamTarget.transform.position - deathCam.transform.position, cameraUp), dogfightLerp / 2f);
+						flightCamera.transform.rotation = Quaternion.Slerp(flightCamera.transform.rotation, Quaternion.LookRotation(deathCamTarget.transform.position - deathCam.transform.position, cameraUp), dogfightLerp / 16f); // Slower rotation around the death location.
 					}
 					return; // Do nothing else until we have an active vessel.
 				}

@@ -15,9 +15,9 @@ namespace CameraTools.ModIntegration
 		public static BDArmory instance;
 		public static bool hasBDA = false;
 
-		[CTPersistantField] public bool autoEnableForBDA = false;
-		[CTPersistantField] public bool useBDAutoTarget = false;
-		[CTPersistantField] public bool autoTargetIncomingMissiles = true;
+		[CTPersistantField] public bool autoEnableForBDA = true;
+		[CTPersistantField] public bool useBDAutoTarget = true;
+		[CTPersistantField] public bool autoTargetIncomingMissiles = false;
 		[CTPersistantField] public bool useCentroid = false;
 		public bool autoEnableOverride = false;
 		public bool hasBDAI = false;
