@@ -177,6 +177,64 @@ namespace CameraTools
 		public static double speedOfSound = 340;
 		#endregion
 
+		#region Zoom
+		[CTPersistantField] public bool autoZoomDogfight = false;
+		[CTPersistantField] public bool autoZoomStationary = false;
+		public bool autoFOV
+		{
+			get
+			{
+				return toolMode switch
+				{
+					ToolModes.DogfightCamera => autoZoomDogfight,
+					ToolModes.StationaryCamera => autoZoomStationary,
+					_ => false
+				};
+			}
+			set
+			{
+				switch (toolMode)
+				{
+					case ToolModes.DogfightCamera:
+						autoZoomDogfight = value;
+						break;
+					case ToolModes.StationaryCamera:
+						autoZoomStationary = value;
+						break;
+				}
+			}
+		}
+		float manualFOV = 60;
+		float currentFOV = 60;
+		[CTPersistantField] public float autoZoomMarginDogfight = 20;
+		[CTPersistantField] public float autoZoomMarginStationary = 20;
+		[CTPersistantField] public float autoZoomMarginMax = 50f;
+		public float autoZoomMargin
+		{
+			get
+			{
+				return toolMode switch
+				{
+					ToolModes.DogfightCamera => autoZoomMarginDogfight,
+					ToolModes.StationaryCamera => autoZoomMarginStationary,
+					_ => 20f,
+				};
+			}
+			set
+			{
+				switch (toolMode)
+				{
+					case ToolModes.DogfightCamera:
+						autoZoomMarginDogfight = value;
+						break;
+					case ToolModes.StationaryCamera:
+						autoZoomMarginStationary = value;
+						break;
+				}
+			}
+		}
+		#endregion
+
 		#region Camera Shake
 		Vector3 shakeOffset = Vector3.zero;
 		float shakeMagnitude = 0;
@@ -199,33 +257,6 @@ namespace CameraTools
 		Vector3 dogfightLerpMomentum = default;
 		Quaternion dogfightCameraRoll = Quaternion.identity;
 		Vector3 dogfightCameraRollUp = Vector3.up;
-		[CTPersistantField] public float autoZoomMarginDogfight = 20;
-		[CTPersistantField] public float autoZoomMarginStationary = 20;
-		[CTPersistantField] public float autoZoomMarginMax = 50f;
-		public float autoZoomMargin
-		{
-			get
-			{
-				switch (toolMode)
-				{
-					case ToolModes.DogfightCamera: return autoZoomMarginDogfight;
-					case ToolModes.StationaryCamera: return autoZoomMarginStationary;
-					default: return 20f;
-				}
-			}
-			set
-			{
-				switch (toolMode)
-				{
-					case ToolModes.DogfightCamera:
-						autoZoomMarginDogfight = value;
-						break;
-					case ToolModes.StationaryCamera:
-						autoZoomMarginStationary = value;
-						break;
-				}
-			}
-		}
 		List<Vessel> loadedVessels;
 		bool showingVesselList = false;
 		bool dogfightLastTarget = false;
@@ -241,9 +272,6 @@ namespace CameraTools
 		[CTPersistantField] public bool autoLandingPosition = false;
 		bool autoLandingCamEnabled = false;
 		[CTPersistantField] public bool autoFlybyPosition = false;
-		[CTPersistantField] public bool autoFOV = false;
-		float manualFOV = 60;
-		float currentFOV = 60;
 		Vector3 manualPosition = Vector3.zero;
 		Vector3 lastVesselCoM = Vector3.zero;
 		[CTPersistantField] public float freeMoveSpeed = 10;
@@ -1205,7 +1233,7 @@ namespace CameraTools
 				Quaternion vesselLook = Quaternion.LookRotation(vessel.CoM - cameraTransform.position, dogfightCameraRollUp);
 				Quaternion targetLook = Quaternion.LookRotation(dogfightLastTargetPosition - cameraTransform.position, dogfightCameraRollUp);
 				Quaternion camRot = Quaternion.Lerp(vesselLook, targetLook, 0.5f);
-				cameraTransform.rotation = Quaternion.Lerp(cameraTransform.rotation, camRot, dogfightLerp);
+				cameraTransform.rotation = Quaternion.Lerp(cameraTransform.rotation, camRot, bdArmory.isBDMissile ? dogfightLerp / 2f : dogfightLerp); // Rotate slower for missiles.
 				if (MouseAimFlight.IsMouseAimActive)
 				{
 					if (!MouseAimFlight.IsInFreeLookRecovery)
