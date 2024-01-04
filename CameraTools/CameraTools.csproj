@@ -72,6 +72,7 @@
     <Compile Include="Utils\ReflectionUtils.cs" />
     <Compile Include="Utils\SplineUtils.cs" />
     <Compile Include="Utils\StringUtils.cs" />
+    <Compile Include="Utils\Tooltips.cs" />
     <Compile Include="Vector3Animation.cs" />
     <Compile Include="VesselExtensions.cs" />
   </ItemGroup>
@@ -132,18 +133,17 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Distribution\GameData\CameraTools\ATM_CameraTools.cfg" />
+    <Content Include="Distribution\GameData\CameraTools\CameraTools.version" />
     <Content Include="Distribution\GameData\CameraTools\Changelog.txt" />
     <Content Include="Distribution\GameData\CameraTools\License.txt" />
+    <Content Include="Distribution\GameData\CameraTools\Localization\en-us.cfg" />
     <Content Include="Distribution\GameData\CameraTools\Plugins\CameraTools.dll" />
     <Content Include="Distribution\GameData\CameraTools\Sounds\sonicBoom.wav" />
     <Content Include="Distribution\GameData\CameraTools\Sounds\windhowl.wav" />
     <Content Include="Distribution\GameData\CameraTools\Sounds\windloop.wav" />
     <Content Include="Distribution\GameData\CameraTools\Sounds\windtear.wav" />
     <Content Include="Distribution\GameData\CameraTools\Textures\icon.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Distribution\GameData\CameraTools\ATM_CameraTools.cfg" />
-    <None Include="Distribution\GameData\CameraTools\CameraTools.version" />
   </ItemGroup>
   <ItemGroup />
   <!--  <PropertyGroup>
