@@ -22,6 +22,8 @@ namespace CameraTools.ModIntegration
 		public bool autoEnableOverride = false;
 		public bool hasBDAI = false;
 		public bool hasPilotAI = false;
+		public AIType aiType = AIType.Unknown;
+		public enum AIType {Pilot, Surface, VTOL, Orbital, Unknown};
 		public bool isBDMissile = false;
 		public List<Vessel> bdWMVessels
 		{
@@ -246,6 +248,7 @@ namespace CameraTools.ModIntegration
 		{
 			hasBDAI = false;
 			hasPilotAI = false;
+			aiType = AIType.Unknown;
 			isBDMissile = false;
 			aiComponent = null;
 			if (v)
@@ -256,6 +259,7 @@ namespace CameraTools.ModIntegration
 					{
 						hasBDAI = true;
 						hasPilotAI = true;
+						aiType = AIType.Pilot;
 						aiComponent = (object)p.GetComponent("BDModulePilotAI");
 						return;
 					}
@@ -263,6 +267,7 @@ namespace CameraTools.ModIntegration
 					{
 						hasBDAI = true;
 						hasPilotAI = true;
+						aiType = AIType.VTOL;
 						aiComponent = (object)p.GetComponent("BDModuleVTOLAI");
 						return;
 					}
@@ -270,6 +275,7 @@ namespace CameraTools.ModIntegration
 					{
 						hasBDAI = true;
 						hasPilotAI = false;
+						aiType = AIType.Surface;
 						aiComponent = (object)p.GetComponent("BDModuleSurfaceAI");
 						return;
 					}
@@ -277,6 +283,7 @@ namespace CameraTools.ModIntegration
 					{
 						hasBDAI = true;
 						hasPilotAI = true;
+						aiType = AIType.Orbital;
 						aiComponent = (object)p.GetComponent("BDModuleOrbitalAI");
 						return;
 					}

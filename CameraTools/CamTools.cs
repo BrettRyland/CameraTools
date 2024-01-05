@@ -50,6 +50,7 @@ namespace CameraTools
 
 		string message;
 		bool vesselSwitched = false;
+		float vesselRadius = 0;
 		float PositionInterpolationTypeMax = Enum.GetNames(typeof(PositionInterpolationType)).Length - 1;
 		float RotationInterpolationTypeMax = Enum.GetNames(typeof(RotationInterpolationType)).Length - 1;
 
@@ -960,6 +961,8 @@ namespace CameraTools
 			if (cameraToolActive && vesselSwitched) // We perform this here instead of waiting for the next frame to avoid a flicker of the camera being switched during a FixedUpdate.
 			{
 				vesselSwitched = false;
+				flightCamera.transform.position = deathCamPosition; // Revert flight camera changes that KSP makes using the deathCam's last values.
+				flightCamera.transform.rotation = deathCamRotation;
 				cameraActivate();
 			}
 		}
@@ -987,6 +990,7 @@ namespace CameraTools
 			}
 			deathCamPosition = flightCamera.transform.position;
 			deathCamRotation = flightCamera.transform.rotation;
+			deathCam.transform.SetPositionAndRotation(deathCamPosition, deathCamRotation);
 			if (toolMode == ToolModes.StationaryCamera)
 			{
 				StartStationaryCamera();
@@ -1156,7 +1160,7 @@ namespace CameraTools
 				{
 					dogfightLastTargetPosition = vessel.CoM + vessel.ReferenceTransform.up * 5000f;
 				}
-				if (vessel.Splashed && vessel.Speed() < 10) // Don't bob around lots if the vessel is in water.
+				if (vessel.Splashed && vessel.altitude > -vesselRadius && vessel.Speed() < 10) // Don't bob around lots if the vessel is in water.
 				{
 					dogfightLastTargetPosition = Vector3.Lerp(lastDogfightLastTargetPosition, Vector3.ProjectOnPlane(dogfightLastTargetPosition, cameraUp), (float)vessel.Speed() * 0.01f); // Slow lerp to a horizontal position.
 				}
@@ -1204,6 +1208,12 @@ namespace CameraTools
 				// Debug2Log("localCamPos: " + localCamPos.ToString("G3") + ", " + cameraTransform.localPosition.ToString("G3"));
 				// Debug2Log($"lerp momentum: {dogfightLerpMomentum:G3}");
 				// Debug2Log($"lerp delta: {dogfightLerpDelta:G3}");
+			}
+			// Avoid views from below water / terrain when appropriate.
+			if (vessel.altitude > -vesselRadius && (vessel.LandedOrSplashed || vessel.radarAltitude < dogfightDistance))
+			{
+				var cameraRadarAltitude = GetRadarAltitudeAtPos(cameraTransform.position);
+				if (cameraRadarAltitude < 5) cameraTransform.position += (5f - cameraRadarAltitude) * cameraUp; // Prevent viewing from under the surface if near the surface.
 			}
 
 			//rotation
@@ -1410,15 +1420,7 @@ namespace CameraTools
 
 			if (BDArmory.hasBDA && (bdArmory.hasBDAI || bdArmory.isBDMissile) && (bdArmory.useBDAutoTarget || (bdArmory.useCentroid && bdArmory.bdWMVessels.Count < 2)))
 			{
-				bdArmory.UpdateAIDogfightTarget(); // Using delegates instead of reflection allows us to check every frame.
-				if (vessel.LandedOrSplashed)
-				{
-					var cameraRadarAltitude = GetRadarAltitudeAtPos(cameraTransform.position);
-					if (cameraRadarAltitude < 2f && (vessel.Landed || cameraRadarAltitude > -dogfightDistance)) cameraTransform.position += (2f - cameraRadarAltitude) * cameraUp; // Prevent viewing from under the surface if near the surface.
-
-					// if (DEBUG2 && !GameIsPaused) Debug2Log($"camera altitude: {GetRadarAltitudeAtPos(cameraTransform.position):G3} ({cameraRadarAltitude:G3})");
-				}
-				// else if (DEBUG2 && !GameIsPaused) Debug2Log($"vessel not landed");
+				bdArmory.UpdateAIDogfightTarget();
 			}
 
 			if (dogfightTarget != dogfightPrevTarget)
@@ -1433,6 +1435,7 @@ namespace CameraTools
 		void StartStationaryCamera()
 		{
 			toolMode = ToolModes.StationaryCamera;
+			var cameraTransform = flightCamera.transform;
 			if (FlightGlobals.ActiveVessel != null)
 			{
 				if (DEBUG)
@@ -1474,42 +1477,39 @@ namespace CameraTools
 					float distanceAhead = Mathf.Clamp(4 * clampedSpeed, 30, 3500) * Mathf.Sign(maxRelV);
 
 					if (vessel.Velocity().sqrMagnitude > 1)
-					{ flightCamera.transform.position = vessel.CoM + distanceAhead * vessel.Velocity().normalized; }
+					{ cameraTransform.position = vessel.CoM + distanceAhead * vessel.Velocity().normalized; }
 					else
-					{ flightCamera.transform.position = vessel.CoM + distanceAhead * vessel.vesselTransform.up; }
+					{ cameraTransform.position = vessel.CoM + distanceAhead * vessel.vesselTransform.up; }
 
 					if (flightCamera.mode == FlightCamera.Modes.FREE || FlightCamera.GetAutoModeForVessel(vessel) == FlightCamera.Modes.FREE)
 					{
-						flightCamera.transform.position += (sideDistance * rightAxis) + (15 * cameraUp);
+						cameraTransform.position += (sideDistance * rightAxis) + (15 * cameraUp);
 					}
 					else if (flightCamera.mode == FlightCamera.Modes.ORBITAL || FlightCamera.GetAutoModeForVessel(vessel) == FlightCamera.Modes.ORBITAL)
 					{
-						flightCamera.transform.position += (sideDistance * FlightGlobals.getUpAxis()) + (15 * Vector3.up);
-					}
-
-					var cameraRadarAltitude = GetRadarAltitudeAtPos(flightCamera.transform.position);
-					if (vessel.radarAltitude > 0f && vessel.radarAltitude < -3d * vessel.verticalSpeed) // 3s to impact
-					{
-						flightCamera.transform.position += (35f - cameraRadarAltitude) * cameraUp;
-						cameraRadarAltitude = GetRadarAltitudeAtPos(flightCamera.transform.position);
+						cameraTransform.position += (sideDistance * FlightGlobals.getUpAxis()) + (15 * Vector3.up);
 					}
 
 					// Correct for being below terrain/water (min of 30m AGL).
-					if (cameraRadarAltitude < 30f)
+					if (vessel.altitude > -vesselRadius) // Not too far below water.
 					{
-						flightCamera.transform.position += (30f - cameraRadarAltitude) * cameraUp;
+						var cameraRadarAltitude = GetRadarAltitudeAtPos(cameraTransform.position);
+						if (cameraRadarAltitude < 30)
+						{
+							cameraTransform.position += (30 - cameraRadarAltitude) * cameraUp;
+						}
 					}
-					if (vessel.radarAltitude > 0f) // Make sure terrain isn't in the way (as long as the target is above ground).
+					if (vessel.altitude > 0 && vessel.radarAltitude > 0) // Make sure terrain isn't in the way (as long as the target is above ground).
 					{
 						int count = 0;
 						Ray ray;
 						RaycastHit hit;
 						do
 						{
-							ray = new Ray(flightCamera.transform.position, vessel.CoM - flightCamera.transform.position);
-							if (Physics.Raycast(ray, out hit, (flightCamera.transform.position - vessel.CoM).magnitude, 1 << 15)) // Just terrain.
+							ray = new Ray(cameraTransform.position, vessel.CoM - cameraTransform.position);
+							if (Physics.Raycast(ray, out hit, (cameraTransform.position - vessel.CoM).magnitude, 1 << 15)) // Just terrain.
 							{
-								flightCamera.transform.position += 50f * cameraUp; // Try 50m higher.
+								cameraTransform.position += 50 * cameraUp; // Try 50m higher.
 							}
 							else
 							{
@@ -1525,29 +1525,29 @@ namespace CameraTools
 					float distanceAhead = manualOffsetForward;
 
 					if (vessel.Velocity().sqrMagnitude > 1)
-					{ flightCamera.transform.position = vessel.CoM + distanceAhead * vessel.Velocity().normalized; }
+					{ cameraTransform.position = vessel.CoM + distanceAhead * vessel.Velocity().normalized; }
 					else
-					{ flightCamera.transform.position = vessel.CoM + distanceAhead * vessel.vesselTransform.up; }
+					{ cameraTransform.position = vessel.CoM + distanceAhead * vessel.vesselTransform.up; }
 
 					if (flightCamera.mode == FlightCamera.Modes.FREE || FlightCamera.GetAutoModeForVessel(vessel) == FlightCamera.Modes.FREE)
 					{
-						flightCamera.transform.position += (sideDistance * rightAxis) + (manualOffsetUp * cameraUp);
+						cameraTransform.position += (sideDistance * rightAxis) + (manualOffsetUp * cameraUp);
 					}
 					else if (flightCamera.mode == FlightCamera.Modes.ORBITAL || FlightCamera.GetAutoModeForVessel(vessel) == FlightCamera.Modes.ORBITAL)
 					{
-						flightCamera.transform.position += (sideDistance * FlightGlobals.getUpAxis()) + (manualOffsetUp * Vector3.up);
+						cameraTransform.position += (sideDistance * FlightGlobals.getUpAxis()) + (manualOffsetUp * Vector3.up);
 					}
 				}
 				else if (setPresetOffset)
 				{
-					flightCamera.transform.position = presetOffset;
+					cameraTransform.position = presetOffset;
 					//setPresetOffset = false;
 				}
 
 				// Camera rotation.
 				if (hasTarget)
 				{
-					flightCamera.transform.rotation = Quaternion.LookRotation(vessel.CoM - flightCamera.transform.position, cameraUp);
+					cameraTransform.rotation = Quaternion.LookRotation(vessel.CoM - cameraTransform.position, cameraUp);
 				}
 
 				// Initial velocity
@@ -1566,8 +1566,8 @@ namespace CameraTools
 			{
 				Debug.Log("[CameraTools]: Stationary Camera failed. Active Vessel is null.");
 			}
-			if (hasSavedRotation) { flightCamera.transform.rotation = savedRotation; }
-			stationaryCameraRoll = Quaternion.FromToRotation(Vector3.ProjectOnPlane(cameraUp, flightCamera.transform.forward), flightCamera.transform.up);
+			if (hasSavedRotation) { cameraTransform.rotation = savedRotation; }
+			stationaryCameraRoll = Quaternion.FromToRotation(Vector3.ProjectOnPlane(cameraUp, cameraTransform.forward), cameraTransform.up);
 		}
 
 		/// <summary>
@@ -2434,6 +2434,7 @@ namespace CameraTools
 				DebugLog(message);
 			}
 			vessel = v;
+			vesselRadius = vessel.vesselSize.magnitude / 2;
 			// Switch to a usable camera mode if necessary.
 			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA)
 			{
@@ -2456,9 +2457,12 @@ namespace CameraTools
 				if (BDArmory.IsInhibited) RevertCamera();
 				else if (randomMode)
 				{
-					var lowAlt = Math.Max(30d, -5d * vessel.verticalSpeed * Mathf.Max(0, Vector3.Dot(vessel.srf_vel_direction, -cameraUp))); // 30m or up to 5s to impact (depending on angle), whichever is higher.
+					var randomModeOverride = bdArmory.hasPilotAI && bdArmory.aiType == BDArmory.AIType.Pilot && (
+							vessel.LandedOrSplashed ||
+							(vessel.radarAltitude < 20 && vessel.verticalSpeed > vessel.radarAltitude * vessel.radarAltitude / 100) // Taking off.
+						);
 					var stationarySurfaceVessel = (vessel.Landed && vessel.Speed() < 1) || (vessel.Splashed && vessel.Speed() < 5); // Land or water vessel that isn't moving much.
-					if (stationarySurfaceVessel || (bdArmory.hasPilotAI && vessel.radarAltitude < lowAlt))
+					if (stationarySurfaceVessel || randomModeOverride)
 					{
 						StartStationaryCamera();
 					}

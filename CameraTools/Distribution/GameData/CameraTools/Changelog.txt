@@ -1,10 +1,12 @@
 Improvements / Bugfixes:
-- Improvements to death camera angles for dogfight mode.
+- Improvements to death camera angles and transitions for dogfight mode.
 - Add a button to switch from pathing mode to stationary mode while maintaining the current view.
-- Adjust location of Random mode options.
+- Adjust location of random mode options.
 - Add a button for resetting the camera roll (in stationary and pathing modes).
 - Optimisations to use vessel.CoM instead of vessel.transform.position where applicable.
-- Apply maxRelV to the stationary camera when using Random mode.
+- Apply maxRelV to the stationary camera when using random mode.
+- Remove the low-altitude stationary mode override for random mode.
+- Prevent the camera from going below terrain and water (when vessel is only partially submerged) in dogfight mode.
 - Separate the auto-zoom toggle between dogfight and stationary modes.
 - Adjust default settings for a dynamic dogfight mode.
 - Finish adding English (en-us) localisation and tooltips.
