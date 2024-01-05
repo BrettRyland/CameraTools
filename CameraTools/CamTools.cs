@@ -50,6 +50,7 @@ namespace CameraTools
 
 		string message;
 		bool vesselSwitched = false;
+		ToolModes switchToMode = ToolModes.DogfightCamera;
 		float vesselRadius = 0;
 		float PositionInterpolationTypeMax = Enum.GetNames(typeof(PositionInterpolationType)).Length - 1;
 		float RotationInterpolationTypeMax = Enum.GetNames(typeof(RotationInterpolationType)).Length - 1;
@@ -846,6 +847,7 @@ namespace CameraTools
 					deathCamPosition += deathCamVelocity * TimeWarp.fixedDeltaTime;
 					if (toolMode == ToolModes.DogfightCamera && deathCamTarget && deathCamTarget.gameObject.activeInHierarchy)
 					{
+						// FIXME this is frequently pointing backwards, the deathCamTarget's position needs to be adjusted too
 						deathCamRotation = Quaternion.Slerp(deathCamRotation, Quaternion.LookRotation(deathCamTarget.transform.position - deathCamPosition, cameraUp), dogfightLerp / 8f); // Slower rotation around the death location.
 					}
 					deathCam.transform.SetPositionAndRotation(deathCamPosition, deathCamRotation);
@@ -961,6 +963,7 @@ namespace CameraTools
 			if (cameraToolActive && vesselSwitched) // We perform this here instead of waiting for the next frame to avoid a flicker of the camera being switched during a FixedUpdate.
 			{
 				vesselSwitched = false;
+				toolMode = switchToMode;
 				flightCamera.transform.position = deathCamPosition; // Revert flight camera changes that KSP makes using the deathCam's last values.
 				flightCamera.transform.rotation = deathCamRotation;
 				cameraActivate();
@@ -1421,11 +1424,6 @@ namespace CameraTools
 			if (BDArmory.hasBDA && (bdArmory.hasBDAI || bdArmory.isBDMissile) && (bdArmory.useBDAutoTarget || (bdArmory.useCentroid && bdArmory.bdWMVessels.Count < 2)))
 			{
 				bdArmory.UpdateAIDogfightTarget();
-			}
-
-			if (dogfightTarget != dogfightPrevTarget)
-			{
-				StartDogfightCamera();
 			}
 		}
 		#endregion
@@ -2450,13 +2448,14 @@ namespace CameraTools
 				bdArmory.CheckForBDAI(v);
 				bdArmory.CheckForBDWM(v);
 				if (!bdArmory.hasBDAI) bdArmory.CheckForBDMissile(FlightGlobals.ActiveVessel);
-				bdArmory.UpdateAIDogfightTarget();
+				bdArmory.UpdateAIDogfightTarget(true);
 			}
 			if (cameraToolActive)
 			{
 				if (BDArmory.IsInhibited) RevertCamera();
 				else if (randomMode)
 				{
+					// Actual switching is delayed until the LateUpdate to avoid a flicker.
 					var randomModeOverride = bdArmory.hasPilotAI && bdArmory.aiType == BDArmory.AIType.Pilot && (
 							vessel.LandedOrSplashed ||
 							(vessel.radarAltitude < 20 && vessel.verticalSpeed > vessel.radarAltitude * vessel.radarAltitude / 100) // Taking off.
@@ -2464,17 +2463,15 @@ namespace CameraTools
 					var stationarySurfaceVessel = (vessel.Landed && vessel.Speed() < 1) || (vessel.Splashed && vessel.Speed() < 5); // Land or water vessel that isn't moving much.
 					if (stationarySurfaceVessel || randomModeOverride)
 					{
-						StartStationaryCamera();
+						switchToMode = ToolModes.StationaryCamera;
 					}
 					else if (BDArmory.hasBDA && bdArmory.isBDMissile)
 					{
-						dogfightTarget = null;
-						StartDogfightCamera(); // Use dogfight chase mode for BDA missiles.
+						switchToMode = ToolModes.DogfightCamera; // Use dogfight chase mode for BDA missiles.
 					}
 					else
 					{
 						ChooseRandomMode();
-						// Actual switching is delayed until the LateUpdate to avoid a flicker.
 					}
 				}
 
@@ -2489,22 +2486,22 @@ namespace CameraTools
 			var rand = rng.Next(100);
 			if (rand < randomModeDogfightChance)
 			{
-				toolMode = ToolModes.DogfightCamera;
+				switchToMode = ToolModes.DogfightCamera;
 			}
 			else if (rand < randomModeDogfightChance + randomModeIVAChance)
 			{
-				toolMode = ToolModes.DogfightCamera;
+				switchToMode = ToolModes.DogfightCamera;
 				cockpits = vessel.FindPartModulesImplementing<ModuleCommand>();
 				if (cockpits.Any(c => c.part.protoModuleCrew.Count > 0))
 				{ cockpitView = true; }
 			}
 			else if (rand < randomModeDogfightChance + randomModeIVAChance + randomModeStationaryChance)
 			{
-				toolMode = ToolModes.StationaryCamera;
+				switchToMode = ToolModes.StationaryCamera;
 			}
 			else
 			{
-				toolMode = ToolModes.Pathing;
+				switchToMode = ToolModes.Pathing;
 			}
 		}
 
@@ -3150,6 +3147,20 @@ namespace CameraTools
 							bdArmory.AItargetMinimumUpdateInterval = bdArmory.inputFields["AItargetMinimumUpdateInterval"].currentValue;
 						}
 						bdArmory.autoTargetIncomingMissiles = GUI.Toggle(ThinRect(++line), bdArmory.autoTargetIncomingMissiles, Localize("TargetIncomingMissiles"));
+						if (bdArmory.autoTargetIncomingMissiles)
+						{
+							GUI.Label(SliderLabelLeft(++line, 110f), Localize("MinimumIntervalMissiles"));
+							if (!textInput)
+							{
+								bdArmory.AItargetMinimumMissileUpdateInterval = MathUtils.RoundToUnit(GUI.HorizontalSlider(SliderRect(line, 110f), bdArmory.AItargetMinimumMissileUpdateInterval, 0f, 1f), 0.1f);
+								GUI.Label(SliderLabelRight(line), $"{bdArmory.AItargetMinimumMissileUpdateInterval:F1}s");
+							}
+							else
+							{
+								bdArmory.inputFields["AItargetMinimumMissileUpdateInterval"].tryParseValue(GUI.TextField(RightRect(line), bdArmory.inputFields["AItargetMinimumMissileUpdateInterval"].possibleValue, 8, inputFieldStyle));
+								bdArmory.AItargetMinimumMissileUpdateInterval = bdArmory.inputFields["AItargetMinimumMissileUpdateInterval"].currentValue;
+							}
+						}
 					}
 					if (bdArmory.useCentroid != (bdArmory.useCentroid = GUI.Toggle(ThinRect(++line), bdArmory.useCentroid, Localize("TargetDogfightCentroid"))) && bdArmory.useCentroid)
 					{ bdArmory.useBDAutoTarget = false; }

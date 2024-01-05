@@ -23,7 +23,7 @@ namespace CameraTools.ModIntegration
 		public bool hasBDAI = false;
 		public bool hasPilotAI = false;
 		public AIType aiType = AIType.Unknown;
-		public enum AIType {Pilot, Surface, VTOL, Orbital, Unknown};
+		public enum AIType { Pilot, Surface, VTOL, Orbital, Unknown };
 		public bool isBDMissile = false;
 		public List<Vessel> bdWMVessels
 		{
@@ -69,6 +69,7 @@ namespace CameraTools.ModIntegration
 		Dictionary<string, List<Vessel>> bdActiveVessels = new Dictionary<string, List<Vessel>>();
 		float AItargetUpdateTime = 0;
 		[CTPersistantField] public float AItargetMinimumUpdateInterval = 3;
+		[CTPersistantField] public float AItargetMinimumMissileUpdateInterval = 0.5f;
 		Vessel newAITarget = null;
 		List<Vessel> _bdWMVessels = new List<Vessel>();
 		float _bdWMVesselsLastUpdate = 0;
@@ -107,7 +108,8 @@ namespace CameraTools.ModIntegration
 				}
 			}
 			inputFields = new Dictionary<string, FloatInputField> {
-				{"AItargetMinimumUpdateInterval", gameObject.AddComponent<FloatInputField>().Initialise(0, AItargetMinimumUpdateInterval, 0.5f, 5f, 4)},
+				{"AItargetMinimumUpdateInterval", gameObject.AddComponent<FloatInputField>().Initialise(0, AItargetMinimumUpdateInterval, 0.5f, 5, 4)},
+				{"AItargetMinimumMissileUpdateInterval", gameObject.AddComponent<FloatInputField>().Initialise(0, AItargetMinimumMissileUpdateInterval, 0, 1, 4)},
 			};
 		}
 
@@ -329,6 +331,10 @@ namespace CameraTools.ModIntegration
 
 		Vessel GetAITargetedVessel()
 		{
+			// Don't update too often unless there's no target.
+			if (camTools.dogfightTarget != null && Time.time - AItargetUpdateTime < AItargetMinimumMissileUpdateInterval)
+				return camTools.dogfightTarget;
+
 			// Missiles are high priority.
 			if (autoTargetIncomingMissiles && hasBDWM && wmComponent != null && bdWmMissileFieldGetter != null)
 			{
@@ -438,32 +444,30 @@ namespace CameraTools.ModIntegration
 			return null;
 		}
 
-		public void UpdateAIDogfightTarget()
+		public void UpdateAIDogfightTarget(bool checkSecondaryTarget = false)
 		{
+			if (checkSecondaryTarget) AItargetUpdateTime = 0; // Force a check for secondary targets.
 			if (hasBDAI && hasBDWM && (useBDAutoTarget || (useCentroid && bdWMVessels.Count < 2)))
 			{
 				newAITarget = GetAITargetedVessel();
-				if (newAITarget != null)
+				if (newAITarget != camTools.dogfightTarget)
 				{
-					if (newAITarget != camTools.dogfightTarget)
+					if (CamTools.DEBUG)
 					{
-						if (CamTools.DEBUG)
-						{
-							var message = "Switching dogfight target to " + newAITarget.vesselName + (camTools.dogfightTarget != null ? " from " + camTools.dogfightTarget.vesselName : "");
-							CamTools.DebugLog(message);
-						}
-						camTools.dogfightTarget = newAITarget;
-						AItargetUpdateTime = Time.time;
+						if (newAITarget != null) CamTools.DebugLog($"Switching dogfight target to {(newAITarget != null ? newAITarget.vesselName : "null")}{(camTools.dogfightTarget != null ? " from " + camTools.dogfightTarget.vesselName : "")}");
+						else CamTools.DebugLog("No secondary targets available, using dogfight chase mode.");
 					}
-					else if (Time.time - AItargetUpdateTime >= AItargetMinimumUpdateInterval)
-					{
-						AItargetUpdateTime += 0.5f; // Delay the next update by 0.5s to avoid checking every frame once the minimum interval has elapsed.
-					}
+					camTools.dogfightTarget = newAITarget;
+					AItargetUpdateTime = newAITarget != null ? Time.time : Time.time - AItargetMinimumUpdateInterval + AItargetMinimumMissileUpdateInterval;
+				}
+				else if (Time.time - AItargetUpdateTime >= AItargetMinimumUpdateInterval)
+				{
+					AItargetUpdateTime += Mathf.Max(0.5f, AItargetMinimumMissileUpdateInterval); // Delay the next update by 0.5s to avoid checking every frame once the minimum interval has elapsed.
 				}
 			}
 			else if (isBDMissile && useBDAutoTarget)
 			{
-				if (Time.time - AItargetUpdateTime >= 0.1f) // Only update the missile's target vessel at most every 0.1s (gets reset on vessel switches).
+				if (Time.time - AItargetUpdateTime >= AItargetMinimumMissileUpdateInterval) // Only update the missile's target vessel at most every 0.5s (gets reset on vessel switches).
 				{
 					newAITarget = GetMissileTargetedVessel();
 					if (CamTools.DEBUG)
@@ -553,7 +557,7 @@ namespace CameraTools.ModIntegration
 				else if (bdCompetitionIsActiveFieldGetter != null && bdCompetitionIsActiveFieldGetter(bdCompetitionInstance))
 				{
 					Debug.Log("[CameraTools.ModIntegration.BDArmory]: Activating CameraTools for BDArmory competition as competition is active.");
-					UpdateAIDogfightTarget();
+					UpdateAIDogfightTarget(true);
 					camTools.cameraActivate();
 					restoreDistanceLimit = bdRestoreDistanceLimitPropertyGetter != null ? (float)bdRestoreDistanceLimitPropertyGetter(null) : float.MaxValue;
 					return;

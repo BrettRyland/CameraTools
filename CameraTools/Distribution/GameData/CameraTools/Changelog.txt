@@ -9,6 +9,8 @@ Improvements / Bugfixes:
 - Prevent the camera from going below terrain and water (when vessel is only partially submerged) in dogfight mode.
 - Separate the auto-zoom toggle between dogfight and stationary modes.
 - Adjust default settings for a dynamic dogfight mode.
+- Add a slider for setting the minimum interval to check for a new secondary dogfight target if the secondary target is a missile.
+- Don't restart the dogfight camera when switching secondary targets for smoother transitions.
 - Finish adding English (en-us) localisation and tooltips.
 
 v1.31.0
