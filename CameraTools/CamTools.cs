@@ -413,12 +413,10 @@ namespace CameraTools
 
 			GameEvents.onHideUI.Add(GameUIDisable);
 			GameEvents.onShowUI.Add(GameUIEnable);
-			//GameEvents.onGamePause.Add (PostDeathRevert);
-			GameEvents.OnVesselRecoveryRequested.Add(PostDeathRevert);
 			GameEvents.onGameSceneLoadRequested.Add(PostDeathRevert);
 
-			cameraParent = new GameObject("CameraToolsCameraParent");
-			deathCam = new GameObject("CameraToolsDeathCam");
+			cameraParent = new GameObject("CameraTools.CameraParent");
+			deathCam = new GameObject("CameraTools.DeathCam");
 
 			bdArmory = BDArmory.instance;
 			betterTimeWarp = BetterTimeWarp.instance;
@@ -484,7 +482,6 @@ namespace CameraTools
 		{
 			GameEvents.onHideUI.Remove(GameUIDisable);
 			GameEvents.onShowUI.Remove(GameUIEnable);
-			GameEvents.OnVesselRecoveryRequested.Remove(PostDeathRevert);
 			GameEvents.onGameSceneLoadRequested.Remove(PostDeathRevert);
 			GameEvents.onVesselChange.Remove(SwitchToVessel);
 			GameEvents.onVesselWillDestroy.Remove(CurrentVesselWillDestroy);
@@ -501,11 +498,11 @@ namespace CameraTools
 				cameraToolActive = false;
 				if (DEBUG && wasActiveBeforeModeChange) Debug.Log($"[CameraTools]: Deactivating due to switching to {mode} camera mode.");
 			}
-			else if (mode == CameraManager.CameraMode.Flight)
+			else if (mode == CameraManager.CameraMode.Flight && CameraManager.Instance.previousCameraMode != CameraManager.CameraMode.Flight)
 			{
 				if ((wasActiveBeforeModeChange || activateWhenInFlightMode) && !autoEnableOverriden && !bdArmory.autoEnableOverride)
 				{
-					if (DEBUG) Debug.Log($"[CameraTools]: Camera mode changed to {mode}, reactivating {toolMode}.");
+					if (DEBUG) Debug.Log($"[CameraTools]: Camera mode changed to {mode} from {CameraManager.Instance.previousCameraMode}, reactivating {toolMode}.");
 					cockpitView = false; // Don't go back into cockpit view in case it was triggered by the user.
 					cameraToolActive = true;
 					RevertCamera();
@@ -514,12 +511,12 @@ namespace CameraTools
 					if (!revertWhenInFlightMode)
 					{
 						if (CameraManager.Instance.previousCameraMode == CameraManager.CameraMode.Map) StartCoroutine(DelayActivation(1, false)); // Something messes with the camera position on the first frame after switching.
-						else cameraActivate();
+						else CameraActivate();
 					}
 				}
 				else if (revertWhenInFlightMode)
 				{
-					if (DEBUG) Debug.Log($"[CameraTools]: Camera mode changed to {mode}, applying delayed revert.");
+					if (DEBUG) Debug.Log($"[CameraTools]: Camera mode changed to {mode} from {CameraManager.Instance.previousCameraMode}, applying delayed revert.");
 					cockpitView = false; // Don't go back into cockpit view in case it was triggered by the user.
 					cameraToolActive = true;
 					RevertCamera();
@@ -539,7 +536,7 @@ namespace CameraTools
 				var wait = new WaitForEndOfFrame();
 				for (int i = 0; i < frames; ++i) yield return wait;
 			}
-			cameraActivate();
+			CameraActivate();
 		}
 
 		bool wasUsingObtVel = false;
@@ -722,7 +719,7 @@ namespace CameraTools
 					{
 						ChooseRandomMode();
 					}
-					cameraActivate();
+					CameraActivate();
 				}
 
 				if (Input.GetKeyDown(fmModeToggleKey))
@@ -822,18 +819,18 @@ namespace CameraTools
 
 			if (cameraToolActive)
 			{
-				if ((!hasDied && flightCamera.transform.parent != cameraParent.transform) || (hasDied && flightCamera.transform.parent != deathCam.transform))
+				if (!hasDied && flightCamera.transform.parent != cameraParent.transform)
 				{
 					if (flightCamera.transform.parent == origParent)
 					{
 						message = "Camera parent got reverted to the main camera parent! Stealing it back!";
 						Debug.Log("[CameraTools]: " + message);
 						if (DEBUG) DebugLog(message);
-						flightCamera.transform.parent = hasDied ? deathCam.transform : cameraParent.transform; // KSP reverted the camera parent (e.g., when spawning a new missile or kerbal), steal it back.
+						flightCamera.transform.parent = cameraParent.transform; // KSP reverted the camera parent (e.g., when spawning a new missile or kerbal), steal it back.
 					}
 					else
 					{
-						message = $"Someone has stolen the camera parent ({flightCamera.transform.parent.name} vs {(hasDied ? deathCam.transform.name : cameraParent.transform.name)})! Abort!";
+						message = $"Someone has stolen the camera parent ({flightCamera.transform.parent.name} vs {cameraParent.transform.name})! Abort!";
 						Debug.Log("[CameraTools]: " + message);
 						if (DEBUG) DebugLog(message);
 						cameraToolActive = false;
@@ -966,11 +963,11 @@ namespace CameraTools
 				toolMode = switchToMode;
 				flightCamera.transform.position = deathCamPosition; // Revert flight camera changes that KSP makes using the deathCam's last values.
 				flightCamera.transform.rotation = deathCamRotation;
-				cameraActivate();
+				CameraActivate();
 			}
 		}
 
-		public void cameraActivate()
+		public void CameraActivate()
 		{
 			if (CameraManager.Instance.currentCameraMode != CameraManager.CameraMode.Flight)
 			{
@@ -979,7 +976,11 @@ namespace CameraTools
 				return; // Don't activate if we're not in Flight mode.
 			}
 			activateWhenInFlightMode = false;
-			if (DEBUG) { Debug.Log("[CameraTools]: Activating camera."); DebugLog("Activating camera"); }
+			if (DEBUG)
+			{
+				message = $"Activating camera for mode {toolMode}. Currently {(cameraToolActive ? "active" : "inactive")}.";
+				Debug.Log($"[CameraTools]: {message}"); DebugLog(message);
+			}
 			if (!cameraToolActive)
 			{
 				timeControl.SetTimeControlCameraZoomFix(false);
@@ -1021,7 +1022,7 @@ namespace CameraTools
 			}
 			if (DEBUG)
 			{
-				message = $"Starting dogfight camera for {vessel.vesselName}{(dogfightTarget ? $" vs {dogfightTarget.vesselName}" : "")}.";
+				message = $"Starting dogfight camera{(cockpitView ? " with cockpit view" : "")} for {vessel.vesselName}{(dogfightTarget ? $" vs {dogfightTarget.vesselName}" : "")}.";
 				Debug.Log($"[CameraTools]: {message}");
 				DebugLog(message);
 			}
@@ -2516,8 +2517,8 @@ namespace CameraTools
 			revertWhenInFlightMode = false;
 			if (DEBUG)
 			{
-				message = "Reverting camera.";
-				Debug.Log("[CameraTools]: " + message);
+				message = $"Reverting camera from {toolMode}.";
+				Debug.Log($"[CameraTools]: {message}");
 				DebugLog(message);
 			}
 			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA) // If we were in IVA mode, go back to Flight mode and pretend we were active.
@@ -2604,14 +2605,6 @@ namespace CameraTools
 			origMode = flightCamera.mode;
 			origFov = flightCamera.FieldOfView;
 			if (DEBUG) Debug.Log($"[CameraTools]: Original camera saved. parent: {origParent.name}, mode: {origMode}, FOV: {origFov}, distance: {origDistance}, near: {origNearClip}");
-		}
-
-		void PostDeathRevert()
-		{
-			if (cameraToolActive)
-			{
-				RevertCamera();
-			}
 		}
 
 		void PostDeathRevert(GameScenes f)
@@ -2725,7 +2718,7 @@ namespace CameraTools
 					{
 						ChooseRandomMode();
 					}
-					cameraActivate();
+					CameraActivate();
 				}
 			}
 
@@ -2737,12 +2730,12 @@ namespace CameraTools
 			if (GUI.Button(new Rect(leftIndent, contentTop + (++line * entryHeight), 25, entryHeight - 2), Localize("PrevMode")))
 			{
 				CycleToolMode(false);
-				if (cameraToolActive) cameraActivate();
+				if (cameraToolActive) CameraActivate();
 			}
 			if (GUI.Button(new Rect(leftIndent + 25 + 4, contentTop + (line * entryHeight), 25, entryHeight - 2), Localize("NextMode")))
 			{
 				CycleToolMode(true);
-				if (cameraToolActive) cameraActivate();
+				if (cameraToolActive) CameraActivate();
 			}
 			if (GUI.Button(new Rect(windowWidth - leftIndent - 54, contentTop + (line * entryHeight), 25, entryHeight - 2), Localize("ShowTooltips"), ShowTooltips ? GUI.skin.box : GUI.skin.button))
 			{
@@ -3705,7 +3698,6 @@ namespace CameraTools
 					Debug.Log("[CameraTools]: " + message);
 					DebugLog(message);
 				}
-				SetDeathCam();
 			}
 		}
 
@@ -3809,7 +3801,12 @@ namespace CameraTools
 
 		void SetDeathCam()
 		{
-			if (DEBUG) Debug.Log($"[CameraTools]: Setting the death camera.");
+			if (DEBUG && flightCamera.transform.parent != deathCam.transform)
+			{
+				message = $"Setting the death camera from {flightCamera.transform.parent.name}.";
+				DebugLog(message);
+				Debug.Log($"[CameraTools]: {message}");
+			}
 			flightCamera.SetTargetNone();
 			deathCam.transform.SetPositionAndRotation(deathCamPosition, deathCamRotation);
 			flightCamera.transform.parent = deathCam.transform;

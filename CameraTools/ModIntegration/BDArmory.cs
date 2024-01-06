@@ -550,7 +550,7 @@ namespace CameraTools.ModIntegration
 				if (bdCompetitionStartingFieldGetter != null && bdCompetitionStartingFieldGetter(bdCompetitionInstance))
 				{
 					Debug.Log("[CameraTools.ModIntegration.BDArmory]: Activating CameraTools for BDArmory competition as competition is starting.");
-					camTools.cameraActivate();
+					camTools.CameraActivate();
 					restoreDistanceLimit = bdRestoreDistanceLimitPropertyGetter != null ? (float)bdRestoreDistanceLimitPropertyGetter(null) : float.MaxValue;
 					return;
 				}
@@ -558,7 +558,7 @@ namespace CameraTools.ModIntegration
 				{
 					Debug.Log("[CameraTools.ModIntegration.BDArmory]: Activating CameraTools for BDArmory competition as competition is active.");
 					UpdateAIDogfightTarget(true);
-					camTools.cameraActivate();
+					camTools.CameraActivate();
 					restoreDistanceLimit = bdRestoreDistanceLimitPropertyGetter != null ? (float)bdRestoreDistanceLimitPropertyGetter(null) : float.MaxValue;
 					return;
 				}
