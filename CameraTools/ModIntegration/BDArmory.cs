@@ -71,6 +71,7 @@ namespace CameraTools.ModIntegration
 		[CTPersistantField] public float AItargetMinimumUpdateInterval = 3;
 		[CTPersistantField] public float AItargetMinimumMissileUpdateInterval = 0.5f;
 		Vessel newAITarget = null;
+		public bool aiTargetIsMissile = false;
 		List<Vessel> _bdWMVessels = new List<Vessel>();
 		float _bdWMVesselsLastUpdate = 0;
 		#endregion
@@ -342,9 +343,11 @@ namespace CameraTools.ModIntegration
 				if (missile != null)
 				{
 					if (CamTools.DEBUG && missile != camTools.dogfightTarget) CamTools.DebugLog($"Incoming missile {missile.vesselName}");
+					aiTargetIsMissile = true;
 					return missile;
 				}
 			}
+			aiTargetIsMissile = false;
 
 			// Don't update too often unless there's no target.
 			if (camTools.dogfightTarget != null && Time.time - AItargetUpdateTime < AItargetMinimumUpdateInterval)

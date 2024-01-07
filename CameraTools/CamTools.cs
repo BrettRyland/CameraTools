@@ -183,7 +183,7 @@ namespace CameraTools
 
 		#region Zoom
 		[CTPersistantField] public bool autoZoomDogfight = false;
-		[CTPersistantField] public bool autoZoomStationary = false;
+		[CTPersistantField] public bool autoZoomStationary = true;
 		public bool autoFOV
 		{
 			get
@@ -210,8 +210,8 @@ namespace CameraTools
 		}
 		float manualFOV = 60;
 		float currentFOV = 60;
-		[CTPersistantField] public float autoZoomMarginDogfight = 20;
-		[CTPersistantField] public float autoZoomMarginStationary = 20;
+		[CTPersistantField] public float autoZoomMarginDogfight = 50;
+		[CTPersistantField] public float autoZoomMarginStationary = 30;
 		[CTPersistantField] public float autoZoomMarginMax = 50f;
 		public float autoZoomMargin
 		{
@@ -254,7 +254,7 @@ namespace CameraTools
 		[CTPersistantField] public float dogfightOffsetY = 5f;
 		[CTPersistantField] public float dogfightMaxOffset = 50;
 		[CTPersistantField] public bool dogfightInertialChaseMode = true;
-		[CTPersistantField] public float dogfightLerp = 0.2f;
+		[CTPersistantField] public float dogfightLerp = 0.15f;
 		[CTPersistantField] public float dogfightRoll = 0.2f;
 		[CTPersistantField] public float dogfightInertialFactor = 0.05f;
 		Vector3 dogfightLerpDelta = default;
@@ -569,11 +569,11 @@ namespace CameraTools
 				{
 					case ToolModes.DogfightCamera:
 						{
-							floatingKrakenAdjustment = -FloatingOrigin.Offset;
+							floatingKrakenAdjustment = -CTKrakensbane.FloatingOriginOffset;
 							if (!inOrbit)
-								floatingKrakenAdjustment += (vessel.srf_velocity - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime;
+								floatingKrakenAdjustment += (vessel.srf_velocity - CTKrakensbane.FrameVelocity) * TimeWarp.fixedDeltaTime;
 							else if (!inHighWarp && useObtVel != wasUsingObtVel) // Only needed when crossing the boundary.
-								floatingKrakenAdjustment += ((useObtVel ? vessel.obt_velocity : vessel.srf_velocity) - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime;
+								floatingKrakenAdjustment += ((useObtVel ? vessel.obt_velocity : vessel.srf_velocity) - CTKrakensbane.FrameVelocity) * TimeWarp.fixedDeltaTime;
 							if (hasDied) deathCamPosition += floatingKrakenAdjustment;
 							else cameraParent.transform.position += floatingKrakenAdjustment;
 							// if (DEBUG2 && !GameIsPaused)
@@ -633,16 +633,16 @@ namespace CameraTools
 								}
 								else
 								{
-									if (!FloatingOrigin.Offset.IsZero() || !Krakensbane.GetFrameVelocity().IsZero())
+									if (CTKrakensbane.IsActive)
 									{
 										if (vessel.altitude > 1e5)
-											floatingKrakenAdjustment = -FloatingOrigin.OffsetNonKrakensbane;
+											floatingKrakenAdjustment = -CTKrakensbane.FloatingOriginOffsetNonKrakensbane;
 										else if (wasAbove1e5)
-											floatingKrakenAdjustment = -FloatingOrigin.OffsetNonKrakensbane + (vessel.srf_velocity - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime;
+											floatingKrakenAdjustment = -CTKrakensbane.FloatingOriginOffsetNonKrakensbane + (vessel.srf_velocity - CTKrakensbane.FrameVelocity) * TimeWarp.fixedDeltaTime;
 										else if (inOrbit)
-											floatingKrakenAdjustment = -vessel.obt_velocity * TimeWarp.fixedDeltaTime - FloatingOrigin.Offset;
+											floatingKrakenAdjustment = -vessel.obt_velocity * TimeWarp.fixedDeltaTime - CTKrakensbane.FloatingOriginOffset;
 										else
-											floatingKrakenAdjustment = -vessel.srf_velocity * TimeWarp.fixedDeltaTime - FloatingOrigin.Offset;
+											floatingKrakenAdjustment = -vessel.srf_velocity * TimeWarp.fixedDeltaTime - CTKrakensbane.FloatingOriginOffset;
 										lastVesselCoM += floatingKrakenAdjustment;
 										lastCamParentPosition += floatingKrakenAdjustment;
 									}
@@ -650,12 +650,11 @@ namespace CameraTools
 							}
 							else
 							{
-								if (!FloatingOrigin.Offset.IsZero() || !Krakensbane.GetFrameVelocity().IsZero())
+								if (CTKrakensbane.IsActive)
 								{
-									floatingKrakenAdjustment = -FloatingOrigin.OffsetNonKrakensbane;
+									floatingKrakenAdjustment = -CTKrakensbane.FloatingOriginOffsetNonKrakensbane;
 									lastVesselCoM += floatingKrakenAdjustment;
 									lastCamParentPosition += floatingKrakenAdjustment;
-									if (hasDied) deathCamPosition += floatingKrakenAdjustment;
 								}
 							}
 							break;
@@ -666,9 +665,9 @@ namespace CameraTools
 					DebugLog($"Vessel Situation changed from {lastVesselSituation} to {vessel.situation}");
 					lastVesselSituation = vessel.situation;
 				}
-				if (DEBUG && TimeWarp.WarpMode == TimeWarp.Modes.LOW && FloatingOrigin.Offset.sqrMagnitude > 10)
+				if (DEBUG && TimeWarp.WarpMode == TimeWarp.Modes.LOW && CTKrakensbane.FloatingOriginOffset.sqrMagnitude > 10)
 				{
-					DebugLog("Floating origin offset: " + FloatingOrigin.Offset.ToString("0.0") + ", Krakensbane velocity correction: " + Krakensbane.GetLastCorrection().ToString("0.0"));
+					DebugLog("Floating origin offset: " + CTKrakensbane.FloatingOriginOffset.ToString("0.0") + ", Krakensbane velocity correction: " + Krakensbane.GetLastCorrection().ToString("0.0"));
 				}
 				// #if DEBUG
 				// 				if (DEBUG && (flightCamera.transform.position - (vessel.CoM - lastVesselCoM) - lastCameraPosition).sqrMagnitude > 1)
@@ -842,10 +841,13 @@ namespace CameraTools
 				{
 					deathCamVelocity = (deathCamVelocity - deathCamTargetVelocity) * deathCamDecayFactor + deathCamTargetVelocity; // Slow down to the target velocity.
 					deathCamPosition += deathCamVelocity * TimeWarp.fixedDeltaTime;
+					if (CTKrakensbane.IsActive) deathCamPosition -= CTKrakensbane.FloatingOriginOffsetNonKrakensbane;
 					if (toolMode == ToolModes.DogfightCamera && deathCamTarget && deathCamTarget.gameObject.activeInHierarchy)
 					{
-						// FIXME this is frequently pointing backwards, the deathCamTarget's position needs to be adjusted too
-						deathCamRotation = Quaternion.Slerp(deathCamRotation, Quaternion.LookRotation(deathCamTarget.transform.position - deathCamPosition, cameraUp), dogfightLerp / 8f); // Slower rotation around the death location.
+						var deathCamTargetPosition = deathCamTarget.transform.position + TimeWarp.fixedDeltaTime * deathCamTarget.rb_velocity;
+						var targetRotation = Quaternion.LookRotation(deathCamTargetPosition - deathCamPosition, cameraUp);
+						var lerpFactor = Mathf.Clamp01(Quaternion.Angle(deathCamRotation, targetRotation) / 45); // Slow down rotation once with 45°.
+						deathCamRotation = Quaternion.Slerp(deathCamRotation, targetRotation, lerpFactor * dogfightLerp);
 					}
 					deathCam.transform.SetPositionAndRotation(deathCamPosition, deathCamRotation);
 					return; // Do nothing else until we have an active vessel.
@@ -1146,8 +1148,8 @@ namespace CameraTools
 				}
 				else
 				{
-					if (!FloatingOrigin.Offset.IsZero() || !Krakensbane.GetFrameVelocity().IsZero())
-					{ dogfightLastTargetPosition -= FloatingOrigin.OffsetNonKrakensbane; }
+					if (CTKrakensbane.IsActive)
+					{ dogfightLastTargetPosition -= CTKrakensbane.FloatingOriginOffsetNonKrakensbane; }
 					dogfightLastTargetPosition += dogfightLastTargetVelocity * TimeWarp.fixedDeltaTime;
 				}
 			}
@@ -1251,7 +1253,7 @@ namespace CameraTools
 				Quaternion vesselLook = Quaternion.LookRotation(vessel.CoM - cameraTransform.position, dogfightCameraRollUp);
 				Quaternion targetLook = Quaternion.LookRotation(dogfightLastTargetPosition - cameraTransform.position, dogfightCameraRollUp);
 				Quaternion camRot = Quaternion.Lerp(vesselLook, targetLook, 0.5f);
-				cameraTransform.rotation = Quaternion.Lerp(cameraTransform.rotation, camRot, bdArmory.isBDMissile ? dogfightLerp / 2f : dogfightLerp); // Rotate slower for missiles.
+				cameraTransform.rotation = Quaternion.Lerp(cameraTransform.rotation, camRot, bdArmory.aiTargetIsMissile ? dogfightLerp / 2f : dogfightLerp); // Rotate slower for incoming missiles (which can switch frequently).
 				if (MouseAimFlight.IsMouseAimActive)
 				{
 					if (!MouseAimFlight.IsInFreeLookRecovery)

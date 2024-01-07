@@ -69,6 +69,7 @@
     <Compile Include="RotationAnimation.cs" />
     <Compile Include="Utils\CCInputUtils.cs" />
     <Compile Include="Utils\MathUtils.cs" />
+    <Compile Include="Utils\KrakensbaneUtils.cs" />
     <Compile Include="Utils\ReflectionUtils.cs" />
     <Compile Include="Utils\SplineUtils.cs" />
     <Compile Include="Utils\StringUtils.cs" />
