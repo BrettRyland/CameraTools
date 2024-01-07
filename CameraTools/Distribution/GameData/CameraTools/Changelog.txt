@@ -1,3 +1,4 @@
+v1.32.0
 Improvements / Bugfixes:
 - Improvements to death camera angles and transitions for dogfight mode.
 - Add a button to switch from pathing mode to stationary mode while maintaining the current view.
