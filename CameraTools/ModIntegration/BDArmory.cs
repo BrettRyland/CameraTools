@@ -70,6 +70,8 @@ namespace CameraTools.ModIntegration
 		float AItargetUpdateTime = 0;
 		[CTPersistantField] public float AItargetMinimumUpdateInterval = 3;
 		[CTPersistantField] public float AItargetMinimumMissileUpdateInterval = 0.5f;
+		[CTPersistantField] public float AItargetSecondaryTargetDeathSwitchDelay = 2;
+		float AItargetVesselLastAliveTime = 0;
 		Vessel newAITarget = null;
 		public bool aiTargetIsMissile = false;
 		List<Vessel> _bdWMVessels = new List<Vessel>();
@@ -111,6 +113,7 @@ namespace CameraTools.ModIntegration
 			inputFields = new Dictionary<string, FloatInputField> {
 				{"AItargetMinimumUpdateInterval", gameObject.AddComponent<FloatInputField>().Initialise(0, AItargetMinimumUpdateInterval, 0.5f, 5, 4)},
 				{"AItargetMinimumMissileUpdateInterval", gameObject.AddComponent<FloatInputField>().Initialise(0, AItargetMinimumMissileUpdateInterval, 0, 1, 4)},
+				{"AItargetSecondaryTargetDeathSwitchDelay", gameObject.AddComponent<FloatInputField>().Initialise(0, AItargetSecondaryTargetDeathSwitchDelay, 0, 5, 4)},
 			};
 		}
 
@@ -353,6 +356,10 @@ namespace CameraTools.ModIntegration
 			if (camTools.dogfightTarget != null && Time.time - AItargetUpdateTime < AItargetMinimumUpdateInterval)
 				return camTools.dogfightTarget;
 
+			// Don't switch secondary targets if the secondary target was a vessel that just died.
+			if (Time.time - AItargetVesselLastAliveTime < AItargetSecondaryTargetDeathSwitchDelay && camTools.dogfightTarget == null)
+				return null;
+
 			// Recently firing on a target.
 			Vessel target = null;
 			if (hasBDAI && aiComponent != null && bdAITargetFieldGetter != null)
@@ -453,6 +460,7 @@ namespace CameraTools.ModIntegration
 			if (hasBDAI && hasBDWM && (useBDAutoTarget || (useCentroid && bdWMVessels.Count < 2)))
 			{
 				newAITarget = GetAITargetedVessel();
+				if (newAITarget != null && !aiTargetIsMissile) AItargetVesselLastAliveTime = Time.time;
 				if (newAITarget != camTools.dogfightTarget)
 				{
 					if (CamTools.DEBUG)

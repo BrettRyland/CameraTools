@@ -3141,6 +3141,17 @@ namespace CameraTools
 							bdArmory.inputFields["AItargetMinimumUpdateInterval"].tryParseValue(GUI.TextField(RightRect(line), bdArmory.inputFields["AItargetMinimumUpdateInterval"].possibleValue, 8, inputFieldStyle));
 							bdArmory.AItargetMinimumUpdateInterval = bdArmory.inputFields["AItargetMinimumUpdateInterval"].currentValue;
 						}
+						GUI.Label(SliderLabelLeft(++line, 110f), Localize("SecondaryTargetDeathSwitchDelay"));
+						if (!textInput)
+						{
+							bdArmory.AItargetSecondaryTargetDeathSwitchDelay = MathUtils.RoundToUnit(GUI.HorizontalSlider(SliderRect(line, 110f), bdArmory.AItargetSecondaryTargetDeathSwitchDelay, 0f, 5f), 0.5f);
+							GUI.Label(SliderLabelRight(line), $"{bdArmory.AItargetSecondaryTargetDeathSwitchDelay:F1}s");
+						}
+						else
+						{
+							bdArmory.inputFields["AItargetSecondaryTargetDeathSwitchDelay"].tryParseValue(GUI.TextField(RightRect(line), bdArmory.inputFields["AItargetSecondaryTargetDeathSwitchDelay"].possibleValue, 8, inputFieldStyle));
+							bdArmory.AItargetSecondaryTargetDeathSwitchDelay = bdArmory.inputFields["AItargetSecondaryTargetDeathSwitchDelay"].currentValue;
+						}
 						bdArmory.autoTargetIncomingMissiles = GUI.Toggle(ThinRect(++line), bdArmory.autoTargetIncomingMissiles, Localize("TargetIncomingMissiles"));
 						if (bdArmory.autoTargetIncomingMissiles)
 						{
