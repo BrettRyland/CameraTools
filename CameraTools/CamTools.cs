@@ -3130,10 +3130,10 @@ namespace CameraTools
 					{
 						if (bdArmory.useBDAutoTarget != (bdArmory.useBDAutoTarget = GUI.Toggle(ThinRect(++line), bdArmory.useBDAutoTarget, Localize("BDAAutoTarget"))) && bdArmory.useBDAutoTarget)
 						{ bdArmory.useCentroid = false; }
-						GUI.Label(SliderLabelLeft(++line, 110f), Localize("MinimumInterval"));
+						GUI.Label(SliderLabelLeft(++line, 120f), Localize("MinimumInterval"));
 						if (!textInput)
 						{
-							bdArmory.AItargetMinimumUpdateInterval = MathUtils.RoundToUnit(GUI.HorizontalSlider(SliderRect(line, 110f), bdArmory.AItargetMinimumUpdateInterval, 0.5f, 5f), 0.5f);
+							bdArmory.AItargetMinimumUpdateInterval = MathUtils.RoundToUnit(GUI.HorizontalSlider(SliderRect(line, 120f), bdArmory.AItargetMinimumUpdateInterval, 0.5f, 5f), 0.5f);
 							GUI.Label(SliderLabelRight(line), $"{bdArmory.AItargetMinimumUpdateInterval:F1}s");
 						}
 						else
@@ -3141,10 +3141,10 @@ namespace CameraTools
 							bdArmory.inputFields["AItargetMinimumUpdateInterval"].tryParseValue(GUI.TextField(RightRect(line), bdArmory.inputFields["AItargetMinimumUpdateInterval"].possibleValue, 8, inputFieldStyle));
 							bdArmory.AItargetMinimumUpdateInterval = bdArmory.inputFields["AItargetMinimumUpdateInterval"].currentValue;
 						}
-						GUI.Label(SliderLabelLeft(++line, 110f), Localize("SecondaryTargetDeathSwitchDelay"));
+						GUI.Label(SliderLabelLeft(++line, 120f), Localize("SecondaryTargetDeathSwitchDelay"));
 						if (!textInput)
 						{
-							bdArmory.AItargetSecondaryTargetDeathSwitchDelay = MathUtils.RoundToUnit(GUI.HorizontalSlider(SliderRect(line, 110f), bdArmory.AItargetSecondaryTargetDeathSwitchDelay, 0f, 5f), 0.5f);
+							bdArmory.AItargetSecondaryTargetDeathSwitchDelay = MathUtils.RoundToUnit(GUI.HorizontalSlider(SliderRect(line, 120f), bdArmory.AItargetSecondaryTargetDeathSwitchDelay, 0f, 5f), 0.5f);
 							GUI.Label(SliderLabelRight(line), $"{bdArmory.AItargetSecondaryTargetDeathSwitchDelay:F1}s");
 						}
 						else
@@ -3155,10 +3155,10 @@ namespace CameraTools
 						bdArmory.autoTargetIncomingMissiles = GUI.Toggle(ThinRect(++line), bdArmory.autoTargetIncomingMissiles, Localize("TargetIncomingMissiles"));
 						if (bdArmory.autoTargetIncomingMissiles)
 						{
-							GUI.Label(SliderLabelLeft(++line, 110f), Localize("MinimumIntervalMissiles"));
+							GUI.Label(SliderLabelLeft(++line, 120f), Localize("MinimumIntervalMissiles"));
 							if (!textInput)
 							{
-								bdArmory.AItargetMinimumMissileUpdateInterval = MathUtils.RoundToUnit(GUI.HorizontalSlider(SliderRect(line, 110f), bdArmory.AItargetMinimumMissileUpdateInterval, 0f, 1f), 0.1f);
+								bdArmory.AItargetMinimumMissileUpdateInterval = MathUtils.RoundToUnit(GUI.HorizontalSlider(SliderRect(line, 120f), bdArmory.AItargetMinimumMissileUpdateInterval, 0f, 1f), 0.1f);
 								GUI.Label(SliderLabelRight(line), $"{bdArmory.AItargetMinimumMissileUpdateInterval:F1}s");
 							}
 							else
