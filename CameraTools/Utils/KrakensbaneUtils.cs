@@ -56,23 +56,26 @@ namespace CameraTools.Utils
             _floatingOriginOffsetCheckedThisFrame = false;
             _floatingOriginOffsetNonKrakensbaneCheckedThisFrame = false;
             _isActiveCheckedThisFrame = false;
-            _vesselSwitchedThisFrame = false;
+            _switchedFromDeadVesselThisFrame = false;
             _activeVesselDied = false;
         }
 
         void OnVesselSwitch(Vessel v)
         {
             Reset();
-            _vesselSwitchedThisFrame = true;
+            CheckActiveVessel();
+            _switchedFromDeadVesselThisFrame = _haveActiveVessel && _activeVesselWasDead;
+            _activeVesselWasDead = false;
         }
-        bool _vesselSwitchedThisFrame = false;
+        bool _switchedFromDeadVesselThisFrame = false;
 
         void OnVesselWillDestroy(Vessel v)
         {
             if (!v.isActiveVessel) return;
             _activeVesselDied = true;
+            _activeVesselWasDead = true;
         }
-        bool _activeVesselDied = false;
+        bool _activeVesselDied = false, _activeVesselWasDead = false;
 
         void CheckActiveVessel()
         {
@@ -143,7 +146,7 @@ namespace CameraTools.Utils
             {
                 if (_isActiveCheckedThisFrame) return isActive;
                 // If KSP doesn't have an active vessel, it doesn't set the frame velocity to zero immediately. Similarly, the frame velocity isn't immediately set once KSP has an active vessel again.
-                isActive = _haveActiveVessel && !_activeVesselDied && (!FloatingOriginOffset.IsZero() || !GetFrameVelocityV3f.IsZero() || _vesselSwitchedThisFrame);
+                isActive = _haveActiveVessel && !_activeVesselDied && (!FloatingOriginOffset.IsZero() || !GetFrameVelocityV3f.IsZero() || _switchedFromDeadVesselThisFrame);
                 _isActiveCheckedThisFrame = true;
                 return isActive;
             }
