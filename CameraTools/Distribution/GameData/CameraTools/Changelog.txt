@@ -1,3 +1,6 @@
+Improvements / Bugfixes:
+- Chinese localisation thanks to user ThreeMACH.
+
 v1.33.0
 Improvements / Bugfixes:
 - Add a slider for controlling how long after BDA's secondary dogfight target dies (for non-missiles) before selecting a new secondary non-missile target (to enable lingering on kills).
