@@ -1,5 +1,8 @@
 Improvements / Bugfixes:
 - Chinese localisation thanks to user ThreeMACH.
+- Add an option to toggle pivot points between the camera and the target vessel when rotating with the right mouse button in pathing mode.
+	- The hotkey for toggling it is not assigned by default.
+- When using the movement modifier in pathing mode, rotation with the right mouse button is now relative to the target vessel's orientation instead of the camera's orientation.
 
 v1.33.0
 Improvements / Bugfixes:

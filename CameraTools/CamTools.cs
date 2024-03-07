@@ -9,7 +9,8 @@ using UnityEngine;
 using CameraTools.ModIntegration;
 using CameraTools.Utils;
 
-using static CameraTools.Utils.StringUtils; // For direct access to Localize and LocalizeStr
+using static CameraTools.Utils.StringUtils; // For direct access to Localize and LocalizeStr.
+using static CameraTools.Utils.CCInputUtils; // For direct access to GetKeyPress.
 
 namespace CameraTools
 {
@@ -79,13 +80,18 @@ namespace CameraTools
 		[CTPersistantField] public string fmMovementModifier = "enter";
 		[CTPersistantField] public string fmModeToggleKey = "[2]";
 		[CTPersistantField] public string resetRollKey = "";
+		[CTPersistantField] public string fmPivotModeKey = "";
 		bool waitingForTarget = false;
 		bool waitingForPosition = false;
 		bool mouseUp = false;
 		bool editingKeybindings = false;
-		enum fmModeTypes { Position, Speed };
-		fmModeTypes fmMode = fmModeTypes.Position;
+		enum FMModeTypes { Position, Speed };
+		FMModeTypes fmMode = FMModeTypes.Position;
+		readonly int FMModeTypesMax = Enum.GetValues(typeof(FMModeTypes)).Length - 1;
 		Vector4 fmSpeeds = Vector4.zero; // x,y,z,zoom.
+		enum FMPivotModes { Camera, Target };
+		readonly int FMPivotModeMax = Enum.GetValues(typeof(FMPivotModes)).Length - 1;
+		FMPivotModes fmPivotMode = FMPivotModes.Camera;
 		#endregion
 
 		#region GUI
@@ -701,17 +707,17 @@ namespace CameraTools
 		{
 			if (!isRecordingInput && !boundThisFrame)
 			{
-				if (Input.GetKeyDown(toggleMenu))
+				if (GetKeyPress(toggleMenu))
 				{
 					ToggleGui();
 				}
 
-				if (Input.GetKeyDown(revertKey))
+				if (GetKeyPress(revertKey))
 				{
 					autoEnableOverriden = true;
 					RevertCamera();
 				}
-				else if (Input.GetKeyDown(cameraKey))
+				else if (GetKeyPress(cameraKey))
 				{
 					autoEnableOverriden = false;
 					if (!cameraToolActive && randomMode)
@@ -721,12 +727,12 @@ namespace CameraTools
 					CameraActivate();
 				}
 
-				if (Input.GetKeyDown(fmModeToggleKey))
+				if (GetKeyPress(fmModeToggleKey))
 				{
 					if (!textInput)
 					{
 						// Cycle through the free move modes.
-						var fmModes = (fmModeTypes[])Enum.GetValues(typeof(fmModeTypes));
+						var fmModes = (FMModeTypes[])Enum.GetValues(typeof(FMModeTypes));
 						var fmModeIndex = (fmModes.IndexOf(fmMode) + 1) % fmModes.Length;
 						fmMode = fmModes[fmModeIndex];
 						fmSpeeds = Vector4.zero;
@@ -734,8 +740,15 @@ namespace CameraTools
 					}
 					else
 					{
-						if (DEBUG) DebugLog($"Unable to switch to free move mode {fmModeTypes.Speed} while in numeric input mode.");
+						if (DEBUG) DebugLog($"Unable to switch to free move mode {FMModeTypes.Speed} while in numeric input mode.");
 					}
+				}
+				if (GetKeyPress(fmPivotModeKey))
+				{
+					var fmPivotModes = (FMPivotModes[])Enum.GetValues(typeof(FMPivotModes));
+					var fmPivotModeIndex = (fmPivotModes.IndexOf(fmPivotMode) + 1) % fmPivotModes.Length;
+					fmPivotMode = fmPivotModes[fmPivotModeIndex];
+					if (DEBUG) DebugLog($"Switching to pivot mode {fmPivotMode}");
 				}
 			}
 
@@ -873,7 +886,7 @@ namespace CameraTools
 						{
 							dogfightTarget = null;
 						}
-						if (fmMode == fmModeTypes.Speed)
+						if (fmMode == FMModeTypes.Speed)
 						{
 							dogfightOffsetY = Mathf.Clamp(dogfightOffsetY + fmSpeeds.y, -dogfightMaxOffset, dogfightMaxOffset);
 							if (Mathf.Abs(dogfightOffsetY) >= dogfightMaxOffset) fmSpeeds.y = 0;
@@ -895,7 +908,7 @@ namespace CameraTools
 						break;
 					case ToolModes.StationaryCamera:
 						// Updating of the stationary camera is handled in Update.
-						if (fmMode == fmModeTypes.Speed)
+						if (fmMode == FMModeTypes.Speed)
 						{
 							manualPosition += upAxis * fmSpeeds.y + forwardAxis * fmSpeeds.z + rightAxis * fmSpeeds.x;
 							if (!autoFOV)
@@ -912,7 +925,7 @@ namespace CameraTools
 						break;
 					case ToolModes.Pathing:
 						if (!useRealTime) UpdatePathingCam();
-						if (fmMode == fmModeTypes.Speed)
+						if (fmMode == FMModeTypes.Speed)
 						{
 							flightCamera.transform.position += upAxis * fmSpeeds.y + forwardAxis * fmSpeeds.z + rightAxis * fmSpeeds.x; // Note: for vessel relative movement, the modifier key will need to be held.
 							zoomExp = Mathf.Clamp(zoomExp + fmSpeeds.w, 1f, zoomMaxExp);
@@ -1307,7 +1320,7 @@ namespace CameraTools
 			{
 				switch (fmMode)
 				{
-					case fmModeTypes.Position:
+					case FMModeTypes.Position:
 						{
 							if (Input.GetKey(fmUpKey))
 							{
@@ -1375,7 +1388,7 @@ namespace CameraTools
 							}
 						}
 						break;
-					case fmModeTypes.Speed:
+					case FMModeTypes.Speed:
 						{
 							if (Input.GetKey(fmUpKey))
 							{
@@ -1619,7 +1632,8 @@ namespace CameraTools
 
 			if (flightCamera.Target != null) flightCamera.SetTargetNone(); // Don't go to the next vessel if the vessel is destroyed.
 
-			if (Input.GetKey(fmMovementModifier))
+			bool fmMovementModified = Input.GetKey(fmMovementModifier);
+			if (fmMovementModified)
 			{
 				upAxis = flightCamera.transform.up;
 				forwardAxis = flightCamera.transform.forward;
@@ -1699,7 +1713,7 @@ namespace CameraTools
 			{
 				switch (fmMode)
 				{
-					case fmModeTypes.Position:
+					case FMModeTypes.Position:
 						{
 							if (Input.GetKey(fmUpKey))
 							{
@@ -1755,7 +1769,7 @@ namespace CameraTools
 							}
 						}
 						break;
-					case fmModeTypes.Speed:
+					case FMModeTypes.Speed:
 						{
 							if (Input.GetKey(fmUpKey))
 							{
@@ -1793,7 +1807,7 @@ namespace CameraTools
 						break;
 				}
 
-				if (!string.IsNullOrEmpty(resetRollKey) && Input.GetKeyDown(resetRollKey)) ResetRoll();
+				if (GetKeyPress(resetRollKey)) ResetRoll();
 			}
 
 			if (Input.GetKey(KeyCode.Mouse1) && Input.GetKey(KeyCode.Mouse2))
@@ -1908,7 +1922,8 @@ namespace CameraTools
 			{
 				//move
 				//mouse panning, moving
-				if (Input.GetKey(fmMovementModifier))
+				bool fmMovementModified = Input.GetKey(fmMovementModifier);
+				if (fmMovementModified)
 				{
 					// Note: The forwardAxis and rightAxis are reversed as this is more convenient when viewing the vessel from the front (which is a more typical use-case).
 					upAxis = -vessel.ReferenceTransform.forward;
@@ -1926,7 +1941,7 @@ namespace CameraTools
 				{
 					switch (fmMode)
 					{
-						case fmModeTypes.Position:
+						case FMModeTypes.Position:
 							{
 								if (Input.GetKey(fmUpKey))
 								{
@@ -1966,7 +1981,7 @@ namespace CameraTools
 								}
 							}
 							break;
-						case fmModeTypes.Speed:
+						case FMModeTypes.Speed:
 							{
 								if (Input.GetKey(fmUpKey))
 								{
@@ -2015,10 +2030,25 @@ namespace CameraTools
 				}
 				else
 				{
-					if (Input.GetKey(KeyCode.Mouse1)) // Right: rotate (pitch/yaw) around the camera pivot
+					if (Input.GetKey(KeyCode.Mouse1)) // Right: rotate (pitch/yaw) around the pivot
 					{
-						flightCamera.transform.rotation *= Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 1.7f / (zoomExp * zoomExp), Vector3.up);
-						flightCamera.transform.rotation *= Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 1.7f / (zoomExp * zoomExp), Vector3.right);
+						Vector2 angle = new(Input.GetAxis("Mouse X") * 1.7f / (zoomExp * zoomExp), -Input.GetAxis("Mouse Y") * 1.7f / (zoomExp * zoomExp));
+						if (fmMovementModified)
+						{
+							var rotationAdjustment = Quaternion.AngleAxis(angle.y, Vector3.Cross(upAxis, flightCamera.transform.forward)) * Quaternion.AngleAxis(angle.x, upAxis);
+							if (fmPivotMode == FMPivotModes.Target) flightCamera.transform.position = cameraParent.transform.position + rotationAdjustment * (flightCamera.transform.position - cameraParent.transform.position);
+							flightCamera.transform.rotation = rotationAdjustment * flightCamera.transform.rotation;
+						}
+						else
+						{
+							var rotationAdjustment = Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
+							if (fmPivotMode == FMPivotModes.Target)
+							{
+								var localRotation = flightCamera.transform.localRotation;
+								flightCamera.transform.localPosition = localRotation * rotationAdjustment * Quaternion.Inverse(localRotation) * flightCamera.transform.localPosition;
+							}
+							flightCamera.transform.rotation *= rotationAdjustment;
+						}
 					}
 					if (Input.GetKey(KeyCode.Mouse2)) // Middle: move left/right and forward/backward
 					{
@@ -2784,8 +2814,8 @@ namespace CameraTools
 							inputFields[field].currentValue = (float)propInfo.GetValue(this);
 						}
 					}
-					if (DEBUG && fmMode == fmModeTypes.Speed) DebugLog("Disabling speed free move mode due to switching to numeric inputs.");
-					fmMode = fmModeTypes.Position; // Disable speed free move mode when using numeric inputs.
+					if (DEBUG && fmMode == FMModeTypes.Speed) DebugLog("Disabling speed free move mode due to switching to numeric inputs.");
+					fmMode = FMModeTypes.Position; // Disable speed free move mode when using numeric inputs.
 				}
 				if (BDArmory.hasBDA) bdArmory.ToggleInputFields(textInput);
 			}
@@ -3371,8 +3401,15 @@ namespace CameraTools
 				}
 
 				GUI.Label(SliderLabelLeft(++line, contentWidth / 2f - 30f), Localize("ControlMode"));
-				fmMode = (fmModeTypes)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)fmMode, 0, 1));
+				fmMode = (FMModeTypes)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)fmMode, 0, FMModeTypesMax));
 				GUI.Label(SliderLabelRight(line, 30f), fmMode.ToString());
+
+				if (toolMode == ToolModes.Pathing)
+				{
+					GUI.Label(SliderLabelLeft(++line, contentWidth / 2f - 30f), Localize("PivotMode"));
+					fmPivotMode = (FMPivotModes)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)fmPivotMode, 0, FMPivotModeMax));
+					GUI.Label(SliderLabelRight(line, 30f), fmPivotMode.ToString());
+				}
 			}
 			++line;
 
@@ -3394,6 +3431,7 @@ namespace CameraTools
 				fmZoomOutKey = KeyBinding(fmZoomOutKey, LocalizeStr("ZoomOut"), ++line);
 				fmMovementModifier = KeyBinding(fmMovementModifier, LocalizeStr("Modifier"), ++line);
 				fmModeToggleKey = KeyBinding(fmModeToggleKey, LocalizeStr("FreeMoveMode"), ++line);
+				fmPivotModeKey = KeyBinding(fmPivotModeKey, LocalizeStr("PivotMode"), ++line);
 				resetRollKey = KeyBinding(resetRollKey, LocalizeStr("ResetRoll"), ++line);
 			}
 
