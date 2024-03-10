@@ -1,3 +1,4 @@
+v1.34.0
 Improvements / Bugfixes:
 - Chinese localisation thanks to user ThreeMACH.
 - Pivot toggle:
