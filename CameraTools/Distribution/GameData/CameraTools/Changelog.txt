@@ -1,13 +1,15 @@
 Improvements / Bugfixes:
 - Chinese localisation thanks to user ThreeMACH.
 - Pivot toggle:
-	- Add an option to toggle pivot points between the camera and the target vessel (if valid) when rotating with the right mouse button.
+	- Add an option to toggle pivot points between the camera and the target (if valid) when rotating with the right mouse button.
 	- A hotkey can be assigned to this toggle, but is not assigned by default.
 	- When pivoting around the camera, the behaviour is unchanged.
 	- When pivoting around a target in pathing or stationary camera modes, the behaviour is similar to KSP's standard camera movement depending on whether the movement modifier is being held or not.
 		- While the movement modifier is not being held, rotation is aligned with the camera's axes.
 		- While the movement modifier is being held, rotation is aligned with the target vessel's axes.
-	- In dogfight camera mode, the pivot toggle affects the free-look mode.
+	- In pathing camera mode, the pivot point is the vessel's reference transform position.
+	- In stationary camera mode, the pivot point is either the targeted part or the vessel CoM if that option is selected.
+	- In dogfight camera mode, the pivot toggle affects the free-look mode and pivots around the closest point to the vessel along the camera's forward axis.
 - Fix camera roll when transitioning between modified and non-modified movement modes.
 - The free-move mode (position vs speed) and pivot mode are now preserved in the settings.
 - Increase the mouse sensitivity for free-look in dogfight mode.

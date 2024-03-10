@@ -62,7 +62,8 @@ namespace CameraTools
 
 		bool freeLook = false;
 		Vector2 freeLookStartUpDistance = Vector2.zero;
-		Vector3 freeLookStartUpOffset = Vector3.zero;
+		Vector3 freeLookOffset = Vector3.zero;
+		float freeLookDistance = 0;
 		[CTPersistantField] public float freeLookThresholdSqr = 0.1f; // Mouse movement threshold for starting free look (units unknown).
 
 		#region Input
@@ -1198,6 +1199,7 @@ namespace CameraTools
 			{
 				dogfightCameraRollUp = cameraUp;
 			}
+
 			if (!(freeLook && fmPivotMode == FMPivotModes.Target)) // Free-look pivoting around the target overrides positioning.
 			{
 				Vector3 lagDirection = (dogfightLastTargetPosition - vessel.CoM).normalized;
@@ -1251,7 +1253,9 @@ namespace CameraTools
 					if (freeLookStartUpDistance.sqrMagnitude > freeLookThresholdSqr)
 					{
 						freeLook = true;
-						freeLookStartUpOffset = cameraTransform.position + dogfightDistance * cameraTransform.forward - vessel.CoM;
+						var vesselCameraOffset = vessel.CoM - cameraTransform.position;
+						freeLookOffset = Vector3.Dot(vesselCameraOffset, cameraTransform.forward) * cameraTransform.forward - vesselCameraOffset;
+						freeLookDistance = (vesselCameraOffset + freeLookOffset).magnitude;
 					}
 				}
 			}
@@ -1269,7 +1273,7 @@ namespace CameraTools
 				var rotationAdjustment = Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 3f, Vector3.up) * Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 3f, Vector3.right);
 				cameraTransform.rotation *= rotationAdjustment;
 				cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, dogfightCameraRollUp);
-				if (fmPivotMode == FMPivotModes.Target) { cameraTransform.position = vessel.CoM + freeLookStartUpOffset - dogfightDistance * cameraTransform.forward; }
+				if (fmPivotMode == FMPivotModes.Target) { cameraTransform.position = vessel.CoM + freeLookOffset - freeLookDistance * cameraTransform.forward; }
 			}
 			else
 			{
@@ -1859,7 +1863,7 @@ namespace CameraTools
 						}
 						else if (camTarget != null && fmPivotMode == FMPivotModes.Target) // Rotating camera about target (we only set the position, not the rotation here as it's overridden below)
 						{
-							var pivotPoint = camTarget.transform.position; // Rotate about the part.
+							var pivotPoint = targetCoM ? camTarget.vessel.CoM : camTarget.transform.position; // Rotate about the part or CoM.
 							if (fmMovementModified) // Rotation axes aligned with target vessel's axes
 							{
 								var pivotUpAxis = -camTarget.vessel.ReferenceTransform.forward;
