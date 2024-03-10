@@ -1819,7 +1819,7 @@ namespace CameraTools
 			}
 			if (Input.GetKey(KeyCode.Mouse1) && Input.GetKey(KeyCode.Mouse2))
 			{
-				stationaryCameraRoll = Quaternion.AngleAxis(Input.GetAxis("Mouse X") * -1.7f, cameraTransform.forward) * stationaryCameraRoll;
+				stationaryCameraRoll = Quaternion.AngleAxis(Input.GetAxis("Mouse X") * -2f, cameraTransform.forward) * stationaryCameraRoll;
 				upAxis = stationaryCameraRoll * cameraUp;
 				cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, upAxis);
 			}
@@ -1827,10 +1827,10 @@ namespace CameraTools
 			{
 				// if (camTarget == null && Input.GetKey(KeyCode.Mouse1))
 				// {
-				// 	// cameraTransform.rotation *= Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 1.7f, Vector3.up); //*(Mathf.Abs(Mouse.delta.x)/7)
-				// 	// cameraTransform.rotation *= Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 1.7f, Vector3.right);
+				// 	// cameraTransform.rotation *= Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 2f, Vector3.up); //*(Mathf.Abs(Mouse.delta.x)/7)
+				// 	// cameraTransform.rotation *= Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 2f, Vector3.right);
 				// 	// cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, stationaryCameraRoll * cameraUp);
-				// 	Vector2 angle = new(Input.GetAxis("Mouse X") * 1.7f, -Input.GetAxis("Mouse Y") * 1.7f);
+				// 	Vector2 angle = new(Input.GetAxis("Mouse X") * 2f, -Input.GetAxis("Mouse Y") * 2f);
 				// 	if (fmMovementModified)
 				// 	{
 				// 		var rotationAdjustment = Quaternion.AngleAxis(angle.y, rightAxis) * Quaternion.AngleAxis(angle.x, upAxis);
@@ -1850,7 +1850,7 @@ namespace CameraTools
 				// }
 				if (Input.GetKey(KeyCode.Mouse1))
 				{
-					Vector2 angle = new(Input.GetAxis("Mouse X") * 1.7f, -Input.GetAxis("Mouse Y") * 1.7f);
+					Vector2 angle = new(Input.GetAxis("Mouse X") * 2f, -Input.GetAxis("Mouse Y") * 2f);
 					if (angle != default)
 					{
 						if (camTarget == null && !hasTarget) // Local rotation can be overridden
@@ -1886,8 +1886,8 @@ namespace CameraTools
 				}
 				if (Input.GetKey(KeyCode.Mouse2))
 				{
-					manualPosition += rightAxis * Input.GetAxis("Mouse X") * 2;
-					manualPosition += forwardAxis * Input.GetAxis("Mouse Y") * 2;
+					manualPosition += rightAxis * Input.GetAxis("Mouse X") * 2f;
+					manualPosition += forwardAxis * Input.GetAxis("Mouse Y") * 2f;
 				}
 			}
 			manualPosition += upAxis * 10 * Input.GetAxis("Mouse ScrollWheel");
@@ -2100,17 +2100,17 @@ namespace CameraTools
 
 				if (Input.GetKey(KeyCode.Mouse1) && Input.GetKey(KeyCode.Mouse2)) // Middle & right: tilt left/right
 				{
-					flightCamera.transform.rotation = Quaternion.AngleAxis(Input.GetAxis("Mouse X") * -1.7f, flightCamera.transform.forward) * flightCamera.transform.rotation;
+					flightCamera.transform.rotation = Quaternion.AngleAxis(Input.GetAxis("Mouse X") * -2f, flightCamera.transform.forward) * flightCamera.transform.rotation;
 				}
 				else if (Input.GetKey(KeyCode.Mouse0) && Input.GetKey(KeyCode.Mouse2)) // Left & middle: move up/down
 				{
-					flightCamera.transform.position += upAxis * Input.GetAxis("Mouse Y") * 2;
+					flightCamera.transform.position += upAxis * Input.GetAxis("Mouse Y") * 2f;
 				}
 				else
 				{
 					if (Input.GetKey(KeyCode.Mouse1)) // Right: rotate (pitch/yaw) around the pivot
 					{
-						Vector2 angle = new(Input.GetAxis("Mouse X") * 1.7f / (zoomExp * zoomExp), -Input.GetAxis("Mouse Y") * 1.7f / (zoomExp * zoomExp));
+						Vector2 angle = new(Input.GetAxis("Mouse X") * 2f / (zoomExp * zoomExp), -Input.GetAxis("Mouse Y") * 2f / (zoomExp * zoomExp));
 						if (fmMovementModified) // Rotation axes aligned with target axes.
 						{
 							var rotationAdjustment = Quaternion.AngleAxis(angle.y, Vector3.Cross(upAxis, flightCamera.transform.forward)) * Quaternion.AngleAxis(angle.x, upAxis);
@@ -2130,8 +2130,8 @@ namespace CameraTools
 					}
 					if (Input.GetKey(KeyCode.Mouse2)) // Middle: move left/right and forward/backward
 					{
-						flightCamera.transform.position += rightAxis * Input.GetAxis("Mouse X") * 2;
-						flightCamera.transform.position += forwardAxis * Input.GetAxis("Mouse Y") * 2;
+						flightCamera.transform.position += rightAxis * Input.GetAxis("Mouse X") * 2f;
+						flightCamera.transform.position += forwardAxis * Input.GetAxis("Mouse Y") * 2f;
 					}
 				}
 				if (freeMoveSpeedRaw != (freeMoveSpeedRaw = Mathf.Clamp(freeMoveSpeedRaw + 0.5f * Input.GetAxis("Mouse ScrollWheel"), freeMoveSpeedMinRaw, freeMoveSpeedMaxRaw)))
