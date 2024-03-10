@@ -62,6 +62,7 @@ namespace CameraTools
 
 		bool freeLook = false;
 		Vector2 freeLookStartUpDistance = Vector2.zero;
+		Vector3 freeLookStartUpOffset = Vector3.zero;
 		[CTPersistantField] public float freeLookThresholdSqr = 0.1f; // Mouse movement threshold for starting free look (units unknown).
 
 		#region Input
@@ -85,13 +86,13 @@ namespace CameraTools
 		bool waitingForPosition = false;
 		bool mouseUp = false;
 		bool editingKeybindings = false;
-		enum FMModeTypes { Position, Speed };
-		FMModeTypes fmMode = FMModeTypes.Position;
+		public enum FMModeTypes { Position, Speed };
+		[CTPersistantField] public FMModeTypes fmMode = FMModeTypes.Position;
 		readonly int FMModeTypesMax = Enum.GetValues(typeof(FMModeTypes)).Length - 1;
 		Vector4 fmSpeeds = Vector4.zero; // x,y,z,zoom.
-		enum FMPivotModes { Camera, Target };
+		public enum FMPivotModes { Camera, Target };
 		readonly int FMPivotModeMax = Enum.GetValues(typeof(FMPivotModes)).Length - 1;
-		FMPivotModes fmPivotMode = FMPivotModes.Camera;
+		[CTPersistantField] public FMPivotModes fmPivotMode = FMPivotModes.Camera;
 		#endregion
 
 		#region GUI
@@ -1167,6 +1168,7 @@ namespace CameraTools
 				}
 			}
 			cameraParent.transform.position = vessel.CoM;
+			cameraParent.transform.rotation = vessel.transform.rotation;
 
 			if (dogfightVelocityChase)
 			{
@@ -1196,43 +1198,47 @@ namespace CameraTools
 			{
 				dogfightCameraRollUp = cameraUp;
 			}
-			Vector3 lagDirection = (dogfightLastTargetPosition - vessel.CoM).normalized;
-			Vector3 offsetDirectionY = dogfightInertialChaseMode ? Quaternion.RotateTowards(Quaternion.identity, Quaternion.FromToRotation(cameraUp, -vessel.ReferenceTransform.forward), Vector3.Angle(cameraUp, -vessel.ReferenceTransform.forward)) * cameraUp : dogfightCameraRollUp;
-			Vector3 offsetDirectionX = Vector3.Cross(offsetDirectionY, lagDirection).normalized;
-			Vector3 camPos = vessel.CoM + (-lagDirection * dogfightDistance);
-			if (!vessel.isEVA) camPos += (dogfightOffsetX * offsetDirectionX) + (dogfightOffsetY * offsetDirectionY);
+			if (!(freeLook && fmPivotMode == FMPivotModes.Target)) // Free-look pivoting around the target overrides positioning.
+			{
+				Vector3 lagDirection = (dogfightLastTargetPosition - vessel.CoM).normalized;
+				Vector3 offsetDirectionY = dogfightInertialChaseMode ? Quaternion.RotateTowards(Quaternion.identity, Quaternion.FromToRotation(cameraUp, -vessel.ReferenceTransform.forward), Vector3.Angle(cameraUp, -vessel.ReferenceTransform.forward)) * cameraUp : dogfightCameraRollUp;
+				Vector3 offsetDirectionX = Vector3.Cross(offsetDirectionY, lagDirection).normalized;
+				Vector3 offset = -dogfightDistance * lagDirection;
+				if (!vessel.isEVA) offset += (dogfightOffsetX * offsetDirectionX) + (dogfightOffsetY * offsetDirectionY);
+				Vector3 camPos = vessel.CoM + offset;
 
-			Vector3 localCamPos = cameraParent.transform.InverseTransformPoint(camPos);
-			if (dogfightInertialChaseMode)
-			{
-				dogfightLerpMomentum /= dogfightLerpMomentum.sqrMagnitude * 2f / dogfightDistance + 1f;
-				dogfightLerpMomentum += dogfightLerpDelta * dogfightInertialFactor;
-				dogfightLerpDelta = -cameraTransform.localPosition;
-			}
-			cameraTransform.localPosition = Vector3.Lerp(cameraTransform.localPosition, localCamPos, dogfightLerp);
-			if (dogfightInertialChaseMode)
-			{
-				cameraTransform.localPosition += dogfightLerpMomentum;
-				dogfightLerpDelta += cameraTransform.localPosition;
-				if (dogfightLerpDelta.sqrMagnitude > dogfightDistance * dogfightDistance) dogfightLerpDelta *= dogfightDistance / dogfightLerpDelta.magnitude;
-			}
-			if (DEBUG2 && !GameIsPaused)
-			{
-				// Debug2Log("time scale: " + Time.timeScale.ToString("G3") + ", Δt: " + Time.fixedDeltaTime.ToString("G3"));
-				// Debug2Log("offsetDirection: " + offsetDirectionX.ToString("G3"));
-				// Debug2Log("target offset: " + ((vessel.CoM - dogfightLastTargetPosition).normalized * dogfightDistance).ToString("G4"));
-				// Debug2Log("xOff: " + (dogfightOffsetX * offsetDirectionX).ToString("G3"));
-				// Debug2Log("yOff: " + (dogfightOffsetY * dogfightCameraRollUp).ToString("G3"));
-				// Debug2Log("camPos - vessel.CoM: " + (camPos - vessel.CoM).ToString("G3"));
-				// Debug2Log("localCamPos: " + localCamPos.ToString("G3") + ", " + cameraTransform.localPosition.ToString("G3"));
-				// Debug2Log($"lerp momentum: {dogfightLerpMomentum:G3}");
-				// Debug2Log($"lerp delta: {dogfightLerpDelta:G3}");
-			}
-			// Avoid views from below water / terrain when appropriate.
-			if (vessel.altitude > -vesselRadius && (vessel.LandedOrSplashed || vessel.radarAltitude < dogfightDistance))
-			{
-				var cameraRadarAltitude = GetRadarAltitudeAtPos(cameraTransform.position);
-				if (cameraRadarAltitude < 5) cameraTransform.position += (5f - cameraRadarAltitude) * cameraUp; // Prevent viewing from under the surface if near the surface.
+				Vector3 localCamPos = cameraParent.transform.InverseTransformPoint(camPos);
+				if (dogfightInertialChaseMode)
+				{
+					dogfightLerpMomentum /= dogfightLerpMomentum.sqrMagnitude * 2f / dogfightDistance + 1f;
+					dogfightLerpMomentum += dogfightLerpDelta * dogfightInertialFactor;
+					dogfightLerpDelta = -cameraTransform.localPosition;
+				}
+				cameraTransform.localPosition = Vector3.Lerp(cameraTransform.localPosition, localCamPos, dogfightLerp);
+				if (dogfightInertialChaseMode)
+				{
+					cameraTransform.localPosition += dogfightLerpMomentum;
+					dogfightLerpDelta += cameraTransform.localPosition;
+					if (dogfightLerpDelta.sqrMagnitude > dogfightDistance * dogfightDistance) dogfightLerpDelta *= dogfightDistance / dogfightLerpDelta.magnitude;
+				}
+				if (DEBUG2 && !GameIsPaused)
+				{
+					// Debug2Log("time scale: " + Time.timeScale.ToString("G3") + ", Δt: " + Time.fixedDeltaTime.ToString("G3"));
+					// Debug2Log("offsetDirection: " + offsetDirectionX.ToString("G3"));
+					// Debug2Log("target offset: " + ((vessel.CoM - dogfightLastTargetPosition).normalized * dogfightDistance).ToString("G4"));
+					// Debug2Log("xOff: " + (dogfightOffsetX * offsetDirectionX).ToString("G3"));
+					// Debug2Log("yOff: " + (dogfightOffsetY * dogfightCameraRollUp).ToString("G3"));
+					// Debug2Log("camPos - vessel.CoM: " + (camPos - vessel.CoM).ToString("G3"));
+					// Debug2Log("localCamPos: " + localCamPos.ToString("G3") + ", " + cameraTransform.localPosition.ToString("G3"));
+					// Debug2Log($"lerp momentum: {dogfightLerpMomentum:G3}");
+					// Debug2Log($"lerp delta: {dogfightLerpDelta:G3}");
+				}
+				// Avoid views from below water / terrain when appropriate.
+				if (vessel.altitude > -vesselRadius && (vessel.LandedOrSplashed || vessel.radarAltitude < dogfightDistance))
+				{
+					var cameraRadarAltitude = GetRadarAltitudeAtPos(cameraTransform.position);
+					if (cameraRadarAltitude < 5) cameraTransform.position += (5f - cameraRadarAltitude) * cameraUp; // Prevent viewing from under the surface if near the surface.
+				}
 			}
 
 			//rotation
@@ -1243,7 +1249,10 @@ namespace CameraTools
 					freeLookStartUpDistance.x += Input.GetAxis("Mouse X");
 					freeLookStartUpDistance.y += -Input.GetAxis("Mouse Y");
 					if (freeLookStartUpDistance.sqrMagnitude > freeLookThresholdSqr)
+					{
 						freeLook = true;
+						freeLookStartUpOffset = cameraTransform.position + dogfightDistance * cameraTransform.forward - vessel.CoM;
+					}
 				}
 			}
 			else
@@ -1257,9 +1266,10 @@ namespace CameraTools
 			}
 			if (freeLook)
 			{
-				cameraTransform.rotation *= Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 1.7f, Vector3.up);
-				cameraTransform.rotation *= Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 1.7f, Vector3.right);
+				var rotationAdjustment = Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 3f, Vector3.up) * Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 3f, Vector3.right);
+				cameraTransform.rotation *= rotationAdjustment;
 				cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, dogfightCameraRollUp);
+				if (fmPivotMode == FMPivotModes.Target) { cameraTransform.position = vessel.CoM + freeLookStartUpOffset - dogfightDistance * cameraTransform.forward; }
 			}
 			else
 			{
@@ -1632,24 +1642,29 @@ namespace CameraTools
 
 			if (flightCamera.Target != null) flightCamera.SetTargetNone(); // Don't go to the next vessel if the vessel is destroyed.
 
+			var cameraTransform = flightCamera.transform;
 			bool fmMovementModified = Input.GetKey(fmMovementModifier);
 			if (fmMovementModified)
 			{
-				upAxis = flightCamera.transform.up;
-				forwardAxis = flightCamera.transform.forward;
-				rightAxis = flightCamera.transform.right;
+				upAxis = cameraTransform.up;
+				forwardAxis = cameraTransform.forward;
+				rightAxis = cameraTransform.right;
 			}
 			else
 			{
+				if (Input.GetKeyUp(fmMovementModifier)) // Modifier key released
+				{
+					stationaryCameraRoll = Quaternion.FromToRotation(Vector3.ProjectOnPlane(cameraUp, cameraTransform.forward), cameraTransform.up); // Correct for any adjustments to the roll from camera movements.
+				}
 				upAxis = stationaryCameraRoll * cameraUp;
-				forwardAxis = Vector3.RotateTowards(upAxis, flightCamera.transform.forward, Mathf.Deg2Rad * 90, 0).normalized;
+				forwardAxis = Vector3.RotateTowards(upAxis, cameraTransform.forward, Mathf.Deg2Rad * 90, 0).normalized;
 				rightAxis = Vector3.Cross(upAxis, forwardAxis);
 			}
 
 			// Set camera position before rotation to avoid jitter.
 			if (vessel != null)
 			{
-				lastCameraPosition = flightCamera.transform.position;
+				lastCameraPosition = cameraTransform.position;
 				offsetSinceLastFrame = vessel.CoM - lastVesselCoM;
 				if (DEBUG2 && !GameIsPaused && !offsetSinceLastFrame.IsZero())
 				{
@@ -1661,29 +1676,12 @@ namespace CameraTools
 				{
 					offsetSinceLastFrame = maxRelV * TimeWarp.fixedDeltaTime * offsetSinceLastFrame.normalized;
 				}
-				if (!offsetSinceLastFrame.IsZero()) flightCamera.transform.position -= offsetSinceLastFrame;
-			}
-
-			// Set camera rotation.
-			if (camTarget != null)
-			{
-				Vector3 lookPosition = camTarget.transform.position;
-				if (targetCoM)
-				{
-					lookPosition = camTarget.vessel.CoM;
-				}
-
-				flightCamera.transform.rotation = Quaternion.LookRotation(lookPosition - flightCamera.transform.position, upAxis);
-				lastTargetPosition = lookPosition;
-			}
-			else if (hasTarget)
-			{
-				flightCamera.transform.rotation = Quaternion.LookRotation(lastTargetPosition - flightCamera.transform.position, upAxis);
+				if (!offsetSinceLastFrame.IsZero()) cameraTransform.position -= offsetSinceLastFrame;
 			}
 
 			// if (DEBUG2 && !GameIsPaused)
 			// {
-			// 	var Δ = lastOffset - (vessel.CoM - flightCamera.transform.position);
+			// 	var Δ = lastOffset - (vessel.CoM - cameraTransform.position);
 			// 	Debug2Log("situation: " + vessel.situation);
 			// 	Debug2Log("warp mode: " + TimeWarp.WarpMode + ", fixedDeltaTime: " + TimeWarp.fixedDeltaTime);
 			// 	Debug2Log("floating origin offset: " + FloatingOrigin.Offset.ToString("G6"));
@@ -1697,18 +1695,18 @@ namespace CameraTools
 			// 	Debug2Log("floatingKrakenAdjustment: " + floatingKrakenAdjustment.ToString("G6"));
 			// 	Debug2Log("(sv-kv)*Δt" + ((vessel.srf_velocity - Krakensbane.GetFrameVelocity()) * TimeWarp.fixedDeltaTime).ToString("G6"));
 			// 	Debug2Log("Parent pos: " + cameraParent.transform.position.ToString("G6"));
-			// 	Debug2Log("Camera pos: " + flightCamera.transform.position.ToString("G6"));
-			// 	Debug2Log("ΔCamera: " + (flightCamera.transform.position - lastCameraPosition).ToString("G6"));
+			// 	Debug2Log("Camera pos: " + cameraTransform.position.ToString("G6"));
+			// 	Debug2Log("ΔCamera: " + (cameraTransform.position - lastCameraPosition).ToString("G6"));
 			// 	Debug2Log("δp: " + (cameraParent.transform.position - lastCamParentPosition).ToString("G6"));
-			// 	Debug2Log("ΔCamera + δp: " + (flightCamera.transform.position - lastCameraPosition + cameraParent.transform.position - lastCamParentPosition).ToString("G6"));
+			// 	Debug2Log("ΔCamera + δp: " + (cameraTransform.position - lastCameraPosition + cameraParent.transform.position - lastCamParentPosition).ToString("G6"));
 			// 	Debug2Log("δ: " + lastOffsetSinceLastFrame.ToString("G6"));
 			// 	Debug2Log("Δ: " + Δ.ToString("G6"));
 			// 	Debug2Log("δ + Δ: " + (lastOffsetSinceLastFrame + Δ).ToString("G6"));
-			// 	lastOffset = vessel.CoM - flightCamera.transform.position;
+			// 	lastOffset = vessel.CoM - cameraTransform.position;
 			// 	lastCamParentPosition = cameraParent.transform.position;
 			// }
 
-			//free move
+			// Keypad input
 			if (enableKeypad && !boundThisFrame)
 			{
 				switch (fmMode)
@@ -1810,18 +1808,77 @@ namespace CameraTools
 				if (GetKeyPress(resetRollKey)) ResetRoll();
 			}
 
+			// Mouse input
+			if (Input.GetKeyDown(KeyCode.Mouse1) || Input.GetKeyDown(KeyCode.Mouse2))
+			{
+				stationaryCameraRoll = Quaternion.FromToRotation(Vector3.ProjectOnPlane(cameraUp, cameraTransform.forward), cameraTransform.up); // Correct for any adjustments to the roll from previous camera movements.
+			}
 			if (Input.GetKey(KeyCode.Mouse1) && Input.GetKey(KeyCode.Mouse2))
 			{
-				stationaryCameraRoll = Quaternion.AngleAxis(Input.GetAxis("Mouse X") * -1.7f, flightCamera.transform.forward) * stationaryCameraRoll;
-				flightCamera.transform.rotation = Quaternion.LookRotation(flightCamera.transform.forward, stationaryCameraRoll * cameraUp);
+				stationaryCameraRoll = Quaternion.AngleAxis(Input.GetAxis("Mouse X") * -1.7f, cameraTransform.forward) * stationaryCameraRoll;
+				upAxis = stationaryCameraRoll * cameraUp;
+				cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, upAxis);
 			}
 			else
 			{
-				if (camTarget == null && Input.GetKey(KeyCode.Mouse1))
+				// if (camTarget == null && Input.GetKey(KeyCode.Mouse1))
+				// {
+				// 	// cameraTransform.rotation *= Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 1.7f, Vector3.up); //*(Mathf.Abs(Mouse.delta.x)/7)
+				// 	// cameraTransform.rotation *= Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 1.7f, Vector3.right);
+				// 	// cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, stationaryCameraRoll * cameraUp);
+				// 	Vector2 angle = new(Input.GetAxis("Mouse X") * 1.7f, -Input.GetAxis("Mouse Y") * 1.7f);
+				// 	if (fmMovementModified)
+				// 	{
+				// 		var rotationAdjustment = Quaternion.AngleAxis(angle.y, rightAxis) * Quaternion.AngleAxis(angle.x, upAxis);
+				// 		if (fmPivotMode == FMPivotModes.Target) cameraTransform.position = cameraParent.transform.position + rotationAdjustment * (cameraTransform.position - cameraParent.transform.position);
+				// 		cameraTransform.rotation = rotationAdjustment * cameraTransform.rotation;
+				// 	}
+				// 	else
+				// 	{
+				// 		var rotationAdjustment = Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
+				// 		if (fmPivotMode == FMPivotModes.Target)
+				// 		{
+				// 			var localRotation = cameraTransform.localRotation;
+				// 			cameraTransform.localPosition = localRotation * rotationAdjustment * Quaternion.Inverse(localRotation) * cameraTransform.localPosition;
+				// 		}
+				// 		cameraTransform.rotation *= rotationAdjustment;
+				// 	}
+				// }
+				if (Input.GetKey(KeyCode.Mouse1))
 				{
-					flightCamera.transform.rotation *= Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 1.7f, Vector3.up); //*(Mathf.Abs(Mouse.delta.x)/7)
-					flightCamera.transform.rotation *= Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 1.7f, Vector3.right);
-					flightCamera.transform.rotation = Quaternion.LookRotation(flightCamera.transform.forward, stationaryCameraRoll * cameraUp);
+					Vector2 angle = new(Input.GetAxis("Mouse X") * 1.7f, -Input.GetAxis("Mouse Y") * 1.7f);
+					if (angle != default)
+					{
+						if (camTarget == null && !hasTarget) // Local rotation can be overridden
+						{
+							if (fmPivotMode == FMPivotModes.Camera) // Original behaviour (pivoting around a target makes no sense here as there's no target to pivot around)
+							{
+								cameraTransform.rotation *= Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
+								cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, stationaryCameraRoll * cameraUp);
+							}
+						}
+						else if (camTarget != null && fmPivotMode == FMPivotModes.Target) // Rotating camera about target (we only set the position, not the rotation here as it's overridden below)
+						{
+							var pivotPoint = camTarget.transform.position; // Rotate about the part.
+							if (fmMovementModified) // Rotation axes aligned with target vessel's axes
+							{
+								var pivotUpAxis = -camTarget.vessel.ReferenceTransform.forward;
+								var rotationAdjustment = Quaternion.AngleAxis(angle.y, Vector3.Cross(pivotUpAxis, cameraTransform.forward)) * Quaternion.AngleAxis(angle.x, pivotUpAxis);
+								cameraTransform.position = pivotPoint + rotationAdjustment * (cameraTransform.position - pivotPoint);
+								upAxis = rotationAdjustment * upAxis;
+							}
+							else // Rotation axes aligned with camera's axes
+							{
+								var rotationAdjustment = Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
+								var parentRotation = camTarget.vessel.transform.rotation;
+								var invParentRotation = Quaternion.Inverse(parentRotation);
+								var localRotation = invParentRotation * cameraTransform.rotation;
+								var localPosition = invParentRotation * (cameraTransform.position - pivotPoint);
+								localPosition = localRotation * rotationAdjustment * Quaternion.Inverse(localRotation) * localPosition;
+								cameraTransform.position = pivotPoint + parentRotation * localPosition;
+							}
+						}
+					}
 				}
 				if (Input.GetKey(KeyCode.Mouse2))
 				{
@@ -1831,10 +1888,27 @@ namespace CameraTools
 			}
 			manualPosition += upAxis * 10 * Input.GetAxis("Mouse ScrollWheel");
 
+			// Set camera rotation if we have a target.
+			if (camTarget != null)
+			{
+				Vector3 lookPosition = camTarget.transform.position;
+				if (targetCoM)
+				{
+					lookPosition = camTarget.vessel.CoM;
+				}
+
+				cameraTransform.rotation = Quaternion.LookRotation(lookPosition - cameraTransform.position, upAxis);
+				lastTargetPosition = lookPosition;
+			}
+			else if (hasTarget)
+			{
+				cameraTransform.rotation = Quaternion.LookRotation(lastTargetPosition - cameraTransform.position, upAxis);
+			}
+
 			//autoFov
 			if (camTarget != null && autoFOV)
 			{
-				float cameraDistance = Vector3.Distance(camTarget.transform.position, flightCamera.transform.position);
+				float cameraDistance = Vector3.Distance(camTarget.transform.position, cameraTransform.position);
 				float targetFoV = Mathf.Clamp((7000 / (cameraDistance + 100)) - 14 + autoZoomMargin, 2, 60);
 				//flightCamera.SetFoV(targetFoV);	
 				manualFOV = targetFoV;
@@ -2033,13 +2107,13 @@ namespace CameraTools
 					if (Input.GetKey(KeyCode.Mouse1)) // Right: rotate (pitch/yaw) around the pivot
 					{
 						Vector2 angle = new(Input.GetAxis("Mouse X") * 1.7f / (zoomExp * zoomExp), -Input.GetAxis("Mouse Y") * 1.7f / (zoomExp * zoomExp));
-						if (fmMovementModified)
+						if (fmMovementModified) // Rotation axes aligned with target axes.
 						{
 							var rotationAdjustment = Quaternion.AngleAxis(angle.y, Vector3.Cross(upAxis, flightCamera.transform.forward)) * Quaternion.AngleAxis(angle.x, upAxis);
 							if (fmPivotMode == FMPivotModes.Target) flightCamera.transform.position = cameraParent.transform.position + rotationAdjustment * (flightCamera.transform.position - cameraParent.transform.position);
 							flightCamera.transform.rotation = rotationAdjustment * flightCamera.transform.rotation;
 						}
-						else
+						else // Rotation axes aligned with camera axes.
 						{
 							var rotationAdjustment = Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
 							if (fmPivotMode == FMPivotModes.Target)
@@ -3403,14 +3477,11 @@ namespace CameraTools
 				GUI.Label(SliderLabelLeft(++line, contentWidth / 2f - 30f), Localize("ControlMode"));
 				fmMode = (FMModeTypes)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)fmMode, 0, FMModeTypesMax));
 				GUI.Label(SliderLabelRight(line, 30f), fmMode.ToString());
-
-				if (toolMode == ToolModes.Pathing)
-				{
-					GUI.Label(SliderLabelLeft(++line, contentWidth / 2f - 30f), Localize("PivotMode"));
-					fmPivotMode = (FMPivotModes)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)fmPivotMode, 0, FMPivotModeMax));
-					GUI.Label(SliderLabelRight(line, 30f), fmPivotMode.ToString());
-				}
 			}
+
+			GUI.Label(SliderLabelLeft(++line, contentWidth / 2f - 30f), Localize("PivotMode"));
+			fmPivotMode = (FMPivotModes)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)fmPivotMode, 0, FMPivotModeMax));
+			GUI.Label(SliderLabelRight(line, 30f), fmPivotMode.ToString());
 			++line;
 
 			// Key bindings
