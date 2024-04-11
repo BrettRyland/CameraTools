@@ -1059,6 +1059,10 @@ namespace CameraTools
 			{
 				dogfightVelocityChase = false;
 			}
+			else if (BDArmory.hasBDA && bdArmory.isRunningWaypoints)
+			{
+				dogfightVelocityChase = true;
+			}
 			else if (BDArmory.hasBDA && bdArmory.isBDMissile)
 			{
 				dogfightLastTarget = true;
@@ -1148,6 +1152,7 @@ namespace CameraTools
 				dogfightLastTarget = true;
 				dogfightLastTargetPosition = dogfightTarget.CoM;
 				dogfightLastTargetVelocity = dogfightTarget.Velocity();
+				dogfightVelocityChase = false;
 			}
 			else if (dogfightLastTarget)
 			{
@@ -1454,6 +1459,11 @@ namespace CameraTools
 			if (BDArmory.hasBDA && (bdArmory.hasBDAI || bdArmory.isBDMissile) && (bdArmory.useBDAutoTarget || (bdArmory.useCentroid && bdArmory.bdWMVessels.Count < 2)))
 			{
 				bdArmory.UpdateAIDogfightTarget();
+				if (bdArmory.isRunningWaypoints)
+				{
+					dogfightLastTarget = false;
+					dogfightVelocityChase = true;
+				}
 			}
 		}
 		#endregion

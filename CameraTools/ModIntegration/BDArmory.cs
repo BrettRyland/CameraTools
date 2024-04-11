@@ -34,6 +34,7 @@ namespace CameraTools.ModIntegration
 			}
 		}
 		public float restoreDistanceLimit = float.MaxValue; // Limit the distance to restore the camera to (for auto-enabling).
+		public bool isRunningWaypoints = false;
 		#endregion
 
 		#region Private fields
@@ -45,11 +46,11 @@ namespace CameraTools.ModIntegration
 		Func<object, bool> bdCompetitionIsActiveFieldGetter = null;
 		object bdVesselSpawnerInstance = null;
 		Func<object, bool> bdVesselsSpawningFieldGetter = null;
-		Func<object, object> bdVesselsSpawningPropertyGetter = null;
-		Func<object, object> bdInhibitCameraToolsPropertyGetter = null;
-		Func<object, object> bdRestoreDistanceLimitPropertyGetter = null;
-		Func<object, object> bdMissileTargetVesselPropertyGetter = null;
-		Func<object, object> bdMissileTargetPositionPropertyGetter = null;
+		Func<object, bool> bdVesselsSpawningPropertyGetter = null;
+		Func<object, bool> bdInhibitCameraToolsPropertyGetter = null;
+		Func<object, float> bdRestoreDistanceLimitPropertyGetter = null;
+		Func<object, Vessel> bdMissileTargetVesselPropertyGetter = null;
+		Func<object, Vector3> bdMissileTargetPositionPropertyGetter = null;
 		Type bdBDATournamentType = null;
 		object bdBDATournamentInstance = null;
 		Func<object, bool> bdTournamentWarpInProgressFieldGetter = null;
@@ -57,19 +58,20 @@ namespace CameraTools.ModIntegration
 		Type aiModType = null;
 		object aiComponent = null;
 		Func<object, Vessel> bdAITargetFieldGetter = null;
+		Func<object, bool> bdAIIsRunningWaypointsPropertyGetter = null;
 		Type wmModType = null;
 		object wmComponent = null;
 		Func<object, Vessel> bdWmThreatFieldGetter = null;
 		Func<object, Vessel> bdWmMissileFieldGetter = null;
 		Func<object, bool> bdWmUnderFireFieldGetter = null;
 		Func<object, bool> bdWmUnderAttackFieldGetter = null;
-		Func<object, object> bdWmRecentlyFiringPropertyGetter = null;
+		Func<object, bool> bdWmRecentlyFiringPropertyGetter = null;
 		object bdLoadedVesselSwitcherInstance = null;
-		Func<object, object> bdLoadedVesselSwitcherVesselsPropertyGetter = null;
+		Func<object, Dictionary<string, List<Vessel>>> bdLoadedVesselSwitcherVesselsPropertyGetter = null;
 		Dictionary<string, List<Vessel>> bdActiveVessels = new Dictionary<string, List<Vessel>>();
 		float AItargetUpdateTime = 0;
 		[CTPersistantField] public float AItargetMinimumUpdateInterval = 3;
-		[CTPersistantField] public float AItargetMinimumMissileUpdateInterval = 0.5f;
+		[CTPersistantField] public float AItargetMinimumMissileUpdateInterval = 0.5f; // Also controls "running waypoints" check interval.
 		[CTPersistantField] public float AItargetSecondaryTargetDeathSwitchDelay = 2;
 		float AItargetVesselLastAliveTime = 0;
 		Vessel newAITarget = null;
@@ -103,6 +105,7 @@ namespace CameraTools.ModIntegration
 				GetUnderFireField();
 				GetUnderAttackField();
 				GetRecentlyFiringProperty();
+				GetIsRunningWaypointsProperty();
 				if (FlightGlobals.ActiveVessel is not null)
 				{
 					CheckForBDAI(FlightGlobals.ActiveVessel);
@@ -178,7 +181,7 @@ namespace CameraTools.ModIntegration
 										foreach (var propertyInfo in t.GetProperties(BindingFlags.Public | BindingFlags.Static))
 											if (propertyInfo != null && propertyInfo.Name == "inhibitCameraTools")
 											{
-												bdVesselsSpawningPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+												bdVesselsSpawningPropertyGetter = ReflectionUtils.BuildGetAccessor<bool>(propertyInfo.GetGetMethod());
 												if (bdVesselsSpawningFieldGetter != null) // Clear the deprecated field.
 												{ bdVesselsSpawningFieldGetter = null; }
 												break;
@@ -190,7 +193,7 @@ namespace CameraTools.ModIntegration
 									foreach (var propertyInfo in t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
 										if (propertyInfo != null && propertyInfo.Name == "Vessels")
 										{
-											bdLoadedVesselSwitcherVesselsPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+											bdLoadedVesselSwitcherVesselsPropertyGetter = ReflectionUtils.BuildGetAccessor<Dictionary<string, List<Vessel>>>(propertyInfo.GetGetMethod());
 											break;
 										}
 									break;
@@ -214,19 +217,19 @@ namespace CameraTools.ModIntegration
 											switch (propertyInfo.Name)
 											{
 												case "InhibitCameraTools":
-													bdInhibitCameraToolsPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+													bdInhibitCameraToolsPropertyGetter = ReflectionUtils.BuildGetAccessor<bool>(propertyInfo.GetGetMethod());
 													// Clear the deprecated fields.
 													bdVesselsSpawningFieldGetter = null;
 													bdVesselsSpawningPropertyGetter = null;
 													break;
 												case "RestoreDistanceLimit":
-													bdRestoreDistanceLimitPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+													bdRestoreDistanceLimitPropertyGetter = ReflectionUtils.BuildGetAccessor<float>(propertyInfo.GetGetMethod());
 													break;
 												case "MissileTargetVessel":
-													bdMissileTargetVesselPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+													bdMissileTargetVesselPropertyGetter = ReflectionUtils.BuildGetAccessor<Vessel>(propertyInfo.GetGetMethod());
 													break;
 												case "MissileTargetPosition":
-													bdMissileTargetPositionPropertyGetter = ReflectionUtils.BuildGetAccessor(propertyInfo.GetGetMethod());
+													bdMissileTargetPositionPropertyGetter = ReflectionUtils.BuildGetAccessor<Vector3>(propertyInfo.GetGetMethod());
 													break;
 											}
 										}
@@ -256,6 +259,7 @@ namespace CameraTools.ModIntegration
 			hasPilotAI = false;
 			aiType = AIType.Unknown;
 			isBDMissile = false;
+			isRunningWaypoints = false;
 			aiComponent = null;
 			if (v)
 			{
@@ -335,7 +339,7 @@ namespace CameraTools.ModIntegration
 
 		Vessel GetAITargetedVessel()
 		{
-			// Don't update too often unless there's no target.
+			// Don't update too often unless there's no target (when not running waypoints).
 			if (camTools.dogfightTarget != null && Time.time - AItargetUpdateTime < AItargetMinimumMissileUpdateInterval)
 				return camTools.dogfightTarget;
 
@@ -368,7 +372,7 @@ namespace CameraTools.ModIntegration
 			}
 			if (target != null && hasBDWM && wmComponent != null && bdWmRecentlyFiringPropertyGetter != null)
 			{
-				bool recentlyFiring = (bool)bdWmRecentlyFiringPropertyGetter(wmComponent); // Priority 2: recently firing on a target.
+				bool recentlyFiring = bdWmRecentlyFiringPropertyGetter(wmComponent); // Priority 2: recently firing on a target.
 				if (recentlyFiring)
 				{
 					if (CamTools.DEBUG && target != camTools.dogfightTarget) CamTools.DebugLog($"Recently firing on {target.vesselName}");
@@ -387,9 +391,21 @@ namespace CameraTools.ModIntegration
 					var threat = bdWmThreatFieldGetter(wmComponent); // Priority 3: incoming fire (can also be missiles).
 					if (threat != null)
 					{
-						if (CamTools.DEBUG && threat != camTools.dogfightTarget) CamTools.DebugLog($"Incoming fire/missile {threat.vesselName}");
+						if (CamTools.DEBUG && threat != camTools.dogfightTarget) CamTools.DebugLog($"Incoming fire/missile {threat.vesselName} (under {(underFire?"fire":"attack")})");
 						return threat;
 					}
+				}
+			}
+
+			// Running waypoints.
+			if (hasBDAI && aiComponent != null && bdAIIsRunningWaypointsPropertyGetter != null)
+			{
+				var wasRunningWaypoints = isRunningWaypoints;
+				isRunningWaypoints = bdAIIsRunningWaypointsPropertyGetter(aiComponent); // Priority 4: waypoints.
+				if (isRunningWaypoints)
+				{
+					if (CamTools.DEBUG && !wasRunningWaypoints) CamTools.DebugLog($"{vessel.vesselName} is running waypoints");
+					return null; // Running waypoints and not currently shooting or being shot at — clear the secondary target.
 				}
 			}
 
@@ -397,7 +413,7 @@ namespace CameraTools.ModIntegration
 			if (target != null)
 			{
 				if (CamTools.DEBUG && target != camTools.dogfightTarget) CamTools.DebugLog($"Targeting {target.vesselName}");
-				return target; // Priority 4: the current vessel's target.
+				return target; // Priority 5: the current vessel's target.
 			}
 			return null;
 		}
@@ -405,13 +421,13 @@ namespace CameraTools.ModIntegration
 		Vessel GetMissileTargetedVessel()
 		{
 			if (!isBDMissile || bdMissileTargetVesselPropertyGetter == null) return null;
-			return (Vessel)bdMissileTargetVesselPropertyGetter(null);
+			return bdMissileTargetVesselPropertyGetter(null);
 		}
 
 		public Vector3 GetMissileTargetedPosition()
 		{
 			if (!isBDMissile || bdMissileTargetPositionPropertyGetter == null) return default;
-			return (Vector3)bdMissileTargetPositionPropertyGetter(null);
+			return bdMissileTargetPositionPropertyGetter(null);
 		}
 
 		Type GetAIModuleType()
@@ -679,6 +695,23 @@ namespace CameraTools.ModIntegration
 			return null;
 		}
 
+		PropertyInfo GetIsRunningWaypointsProperty()
+		{
+			if (aiModType == null) return null;
+
+			PropertyInfo[] propertyInfos = aiModType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+			foreach (var p in propertyInfos)
+			{
+				if (p != null && p.Name == "IsRunningWaypoints")
+				{
+					bdAIIsRunningWaypointsPropertyGetter = ReflectionUtils.BuildGetAccessor<bool>(p.GetGetMethod());
+					if (CamTools.DEBUG) Debug.Log("[CameraTools.ModIntegration.BDArmory]: Created bdAIIsRunningWaypointsPropertyGetter.");
+					return p;
+				}
+			}
+			return null;
+		}
+
 		PropertyInfo GetRecentlyFiringProperty()
 		{
 			if (wmModType == null) return null;
@@ -688,7 +721,7 @@ namespace CameraTools.ModIntegration
 			{
 				if (p != null && p.Name == "recentlyFiring")
 				{
-					bdWmRecentlyFiringPropertyGetter = ReflectionUtils.BuildGetAccessor(p.GetGetMethod());
+					bdWmRecentlyFiringPropertyGetter = ReflectionUtils.BuildGetAccessor<bool>(p.GetGetMethod());
 					if (CamTools.DEBUG) Debug.Log("[CameraTools.ModIntegration.BDArmory]: Created bdWmRecentlyFiringPropertyGetter.");
 					return p;
 				}

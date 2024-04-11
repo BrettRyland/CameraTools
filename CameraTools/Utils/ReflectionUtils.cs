@@ -13,29 +13,29 @@ namespace CameraTools.Utils
 	/// </summary>
 	public static class ReflectionUtils
 	{
-		public static Func<object, object> BuildGetAccessor(MethodInfo method)
+		public static Func<object, T> BuildGetAccessor<T>(MethodInfo method)
 		{
 			var obj = Expression.Parameter(typeof(object), "o");
 
-			Expression<Func<object, object>> expr =
-				Expression.Lambda<Func<object, object>>(
+			Expression<Func<object, T>> expr =
+				Expression.Lambda<Func<object, T>>(
 					Expression.Convert(
 						Expression.Call(
 							method.IsStatic ? null : Expression.Convert(obj, method.DeclaringType),
 							method),
-						typeof(object)),
+						typeof(T)),
 					obj);
 
 			return expr.Compile();
 		}
 
-		public static Action<object, object> BuildSetAccessor(MethodInfo method)
+		public static Action<object, T> BuildSetAccessor<T>(MethodInfo method)
 		{
 			var obj = Expression.Parameter(typeof(object), "o");
-			var value = Expression.Parameter(typeof(object));
+			var value = Expression.Parameter(typeof(T));
 
-			Expression<Action<object, object>> expr =
-				Expression.Lambda<Action<object, object>>(
+			Expression<Action<object, T>> expr =
+				Expression.Lambda<Action<object, T>>(
 					Expression.Call(
 						method.IsStatic ? null : Expression.Convert(obj, method.DeclaringType),
 						method,
