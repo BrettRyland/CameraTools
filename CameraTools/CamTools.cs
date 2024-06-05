@@ -1282,10 +1282,9 @@ namespace CameraTools
 			}
 			else
 			{
-				Quaternion vesselLook = Quaternion.LookRotation(vessel.CoM - cameraTransform.position, dogfightCameraRollUp);
-				Quaternion targetLook = Quaternion.LookRotation(dogfightLastTargetPosition - cameraTransform.position, dogfightCameraRollUp);
-				Quaternion camRot = Quaternion.Lerp(vesselLook, targetLook, 0.5f);
-				cameraTransform.rotation = Quaternion.Lerp(cameraTransform.rotation, camRot, bdArmory.aiTargetIsMissile ? dogfightLerp / 2f : dogfightLerp); // Rotate slower for incoming missiles (which can switch frequently).
+				Quaternion camRot = Quaternion.LookRotation(Vector3.Lerp(vessel.CoM, dogfightLastTargetPosition, 0.5f) - cameraTransform.position, dogfightCameraRollUp);
+				cameraTransform.rotation = Quaternion.Slerp(cameraTransform.rotation, camRot, bdArmory.aiTargetIsMissile ? dogfightLerp / 2f : dogfightLerp); // Rotate slower for incoming missiles (which can switch frequently).
+				cameraTransform.rotation = Quaternion.Slerp(cameraTransform.rotation, Quaternion.LookRotation(cameraTransform.forward, dogfightCameraRollUp), 2f * dogfightLerp); // Reduce unintended roll due to lerping.
 				if (MouseAimFlight.IsMouseAimActive)
 				{
 					if (!MouseAimFlight.IsInFreeLookRecovery)
