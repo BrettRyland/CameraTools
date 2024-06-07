@@ -254,7 +254,8 @@ namespace CameraTools
 		#endregion
 
 		#region Dogfight Camera Fields
-		Vessel dogfightPrevTarget;
+		public enum DogfightOffsetMode { World, Camera, Vessel }
+		readonly int DogfightOffsetModeMax = Enum.GetValues(typeof(DogfightOffsetMode)).Length - 1;
 		public Vessel dogfightTarget;
 		[CTPersistantField] public float dogfightDistance = 50f;
 		[CTPersistantField] public float dogfightMaxDistance = 100;
@@ -262,6 +263,7 @@ namespace CameraTools
 		[CTPersistantField] public float dogfightOffsetY = 5f;
 		[CTPersistantField] public float dogfightMaxOffset = 50;
 		[CTPersistantField] public bool dogfightInertialChaseMode = true;
+		[CTPersistantField] public DogfightOffsetMode dogfightOffsetMode = DogfightOffsetMode.Camera;
 		[CTPersistantField] public float dogfightLerp = 0.15f;
 		[CTPersistantField] public float dogfightRoll = 0.2f;
 		[CTPersistantField] public float dogfightInertialFactor = 0.05f;
@@ -1009,9 +1011,7 @@ namespace CameraTools
 			{
 				SaveOriginalCamera();
 			}
-			deathCamPosition = flightCamera.transform.position;
-			deathCamRotation = flightCamera.transform.rotation;
-			deathCam.transform.SetPositionAndRotation(deathCamPosition, deathCamRotation);
+			UpdateDeathCamFromFlight();
 			if (toolMode == ToolModes.StationaryCamera)
 			{
 				StartStationaryCamera();
@@ -1079,8 +1079,6 @@ namespace CameraTools
 					dogfightVelocityChase = true;
 				}
 			}
-
-			dogfightPrevTarget = dogfightTarget;
 
 			hasDied = false;
 			cameraUp = vessel.up;
@@ -1208,7 +1206,12 @@ namespace CameraTools
 			if (!(freeLook && fmPivotMode == FMPivotModes.Target)) // Free-look pivoting around the target overrides positioning.
 			{
 				Vector3 lagDirection = (dogfightLastTargetPosition - vessel.CoM).normalized;
-				Vector3 offsetDirectionY = dogfightInertialChaseMode ? Quaternion.RotateTowards(Quaternion.identity, Quaternion.FromToRotation(cameraUp, -vessel.ReferenceTransform.forward), Vector3.Angle(cameraUp, -vessel.ReferenceTransform.forward)) * cameraUp : dogfightCameraRollUp;
+				Vector3 offsetDirectionY = dogfightOffsetMode switch
+				{
+					DogfightOffsetMode.Camera => dogfightCameraRollUp,
+					DogfightOffsetMode.Vessel => -vessel.ReferenceTransform.forward,
+					_ => cameraUp
+				};
 				Vector3 offsetDirectionX = Vector3.Cross(offsetDirectionY, lagDirection).normalized;
 				Vector3 offset = -dogfightDistance * lagDirection;
 				if (!vessel.isEVA) offset += (dogfightOffsetX * offsetDirectionX) + (dogfightOffsetY * offsetDirectionY);
@@ -3365,8 +3368,11 @@ namespace CameraTools
 					dogfightInertialFactor = inputFields["dogfightInertialFactor"].currentValue;
 				}
 
-				if (dogfightInertialChaseMode != (dogfightInertialChaseMode = GUI.Toggle(LabelRect(++line), dogfightInertialChaseMode, Localize("InertialChaseMode"))))
-				{ StartDogfightCamera(); }
+				dogfightInertialChaseMode = GUI.Toggle(LabelRect(++line), dogfightInertialChaseMode, Localize("InertialChaseMode"));
+
+				GUI.Label(SliderLabelLeft(++line, contentWidth / 2f - 30f), Localize("DogfightOffsetMode"));
+				dogfightOffsetMode = (DogfightOffsetMode)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)dogfightOffsetMode, 0, DogfightOffsetModeMax));
+				GUI.Label(SliderLabelRight(line, 30f), dogfightOffsetMode.ToString());
 			}
 			else if (toolMode == ToolModes.Pathing)
 			{
@@ -3932,6 +3938,13 @@ namespace CameraTools
 				flightCamera.transform.localRotation = Quaternion.identity;
 			}
 			origParent.position = enableVFX ? cameraParent.transform.position : FlightGlobals.currentMainBody.position;
+		}
+
+		void UpdateDeathCamFromFlight()
+		{
+			deathCamPosition = flightCamera.transform.position;
+			deathCamRotation = flightCamera.transform.rotation;
+			deathCam.transform.SetPositionAndRotation(deathCamPosition, deathCamRotation);
 		}
 
 		void SetDeathCam()

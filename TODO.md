@@ -2,7 +2,6 @@
 - Add wiki with mouse control info https://forum.kerbalspaceprogram.com/index.php?/topic/201063-camera-tools-continued-v1150/&do=findComment&comment=4077185
 - Allow world-based coordinates for the pathing camera
 	- Geo-spatial pathing mode for pathing between GPS coordinates
-- Option for the dogfight offset (normal and inertial modes) to be world or craft relative (currently normal is the former and inertial is the latter).
 - Chase-plane option in dogfight mode to have the camera point at the vessel as if from a chase-plane (disable roll).
 	- Option to pick the part to follow instead of CoM / cockpit.
 - Adjust the inertial mode to allow larger initial lags due to sharp movements without becoming unstable.

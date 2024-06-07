@@ -1,6 +1,8 @@
 Improvements / Bugfixes:
 - Add better handling of dogfight mode for BDA waypoint mode with combat.
 - Adjust get/set accessor templates to return specified types instead of generic objects.
+- Reduce unintended roll in dogfight mode due to low lerp rates.
+- Add a slider for selecting the reference frame to use for the dogfight offset.
 
 v1.34.0
 Improvements / Bugfixes:
