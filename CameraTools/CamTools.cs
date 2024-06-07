@@ -266,9 +266,10 @@ namespace CameraTools
 		[CTPersistantField] public DogfightOffsetMode dogfightOffsetMode = DogfightOffsetMode.Camera;
 		[CTPersistantField] public float dogfightLerp = 0.15f;
 		[CTPersistantField] public float dogfightRoll = 0.2f;
-		[CTPersistantField] public float dogfightInertialFactor = 0.05f;
+		[CTPersistantField] public float dogfightInertialFactor = 0.5f;
 		Vector3 dogfightLerpDelta = default;
 		Vector3 dogfightLerpMomentum = default;
+		Vector3 dogfightRotationTarget = default;
 		Quaternion dogfightCameraRoll = Quaternion.identity;
 		Vector3 dogfightCameraRollUp = Vector3.up;
 		List<Vessel> loadedVessels;
@@ -474,7 +475,7 @@ namespace CameraTools
 				{"dogfightOffsetY", gameObject.AddComponent<FloatInputField>().Initialise(0, dogfightOffsetY, -dogfightMaxOffset, dogfightMaxOffset, 3)},
 				{"dogfightLerp", gameObject.AddComponent<FloatInputField>().Initialise(0, dogfightLerp, 0.01f, 0.5f, 3)},
 				{"dogfightRoll", gameObject.AddComponent<FloatInputField>().Initialise(0, dogfightRoll, 0f, 1f, 3)},
-				{"dogfightInertialFactor", gameObject.AddComponent<FloatInputField>().Initialise(0, dogfightInertialFactor, 0f, 0.1f, 3)},
+				{"dogfightInertialFactor", gameObject.AddComponent<FloatInputField>().Initialise(0, dogfightInertialFactor, 0f, 1f, 2)},
 				{"pathingSecondarySmoothing", gameObject.AddComponent<FloatInputField>().Initialise(0, pathingSecondarySmoothing, 0f, 1f, 4)},
 				{"pathingTimeScale", gameObject.AddComponent<FloatInputField>().Initialise(0, pathingTimeScale, 0.05f, 4f, 4)},
 				{"randomModeDogfightChance", gameObject.AddComponent<FloatInputField>().Initialise(0, randomModeDogfightChance, 0f, 100f, 3)},
@@ -1218,14 +1219,14 @@ namespace CameraTools
 				Vector3 camPos = vessel.CoM + offset;
 
 				Vector3 localCamPos = cameraParent.transform.InverseTransformPoint(camPos);
-				if (dogfightInertialChaseMode)
+				if (dogfightInertialChaseMode && dogfightInertialFactor > 0)
 				{
-					dogfightLerpMomentum /= dogfightLerpMomentum.sqrMagnitude * 2f / dogfightDistance + 1f;
-					dogfightLerpMomentum += dogfightLerpDelta * dogfightInertialFactor;
+					dogfightLerpMomentum /= dogfightLerpMomentum.magnitude / dogfightDistance + 1.1f - 0.1f * dogfightInertialFactor;
+					dogfightLerpMomentum += dogfightLerpDelta * 0.1f * dogfightInertialFactor;
 					dogfightLerpDelta = -cameraTransform.localPosition;
 				}
 				cameraTransform.localPosition = Vector3.Lerp(cameraTransform.localPosition, localCamPos, dogfightLerp);
-				if (dogfightInertialChaseMode)
+				if (dogfightInertialChaseMode && dogfightInertialFactor > 0)
 				{
 					cameraTransform.localPosition += dogfightLerpMomentum;
 					dogfightLerpDelta += cameraTransform.localPosition;
@@ -1285,7 +1286,13 @@ namespace CameraTools
 			}
 			else
 			{
-				Quaternion camRot = Quaternion.LookRotation(Vector3.Lerp(vessel.CoM, dogfightLastTargetPosition, 0.5f) - cameraTransform.position, dogfightCameraRollUp);
+				var rotationTarget = Vector3.Lerp(vessel.CoM, dogfightLastTargetPosition, 0.5f);
+				if (dogfightInertialChaseMode && dogfightInertialFactor > 0)
+				{
+					dogfightRotationTarget = Vector3.Lerp(dogfightRotationTarget, rotationTarget, dogfightLerp * (1f - 0.5f * dogfightInertialFactor));
+					rotationTarget = dogfightRotationTarget;
+				}
+				Quaternion camRot = Quaternion.LookRotation(rotationTarget - cameraTransform.position, dogfightCameraRollUp);
 				cameraTransform.rotation = Quaternion.Slerp(cameraTransform.rotation, camRot, bdArmory.aiTargetIsMissile ? dogfightLerp / 2f : dogfightLerp); // Rotate slower for incoming missiles (which can switch frequently).
 				cameraTransform.rotation = Quaternion.Slerp(cameraTransform.rotation, Quaternion.LookRotation(cameraTransform.forward, dogfightCameraRollUp), 2f * dogfightLerp); // Reduce unintended roll due to lerping.
 				if (MouseAimFlight.IsMouseAimActive)
@@ -3359,8 +3366,8 @@ namespace CameraTools
 				GUI.Label(SliderLabelLeft(++line, 95f), Localize("CameraInertia"));
 				if (!textInput)
 				{
-					dogfightInertialFactor = MathUtils.RoundToUnit(GUI.HorizontalSlider(SliderRect(line, 95f), dogfightInertialFactor, 0f, 0.1f), 0.01f);
-					GUI.Label(SliderLabelRight(line), $"{dogfightInertialFactor:G3}");
+					dogfightInertialFactor = MathUtils.RoundToUnit(GUI.HorizontalSlider(SliderRect(line, 95f), dogfightInertialFactor, 0f, 1f), 0.1f);
+					GUI.Label(SliderLabelRight(line), $"{dogfightInertialFactor:G2}");
 				}
 				else
 				{

@@ -5,7 +5,6 @@
 - Chase-plane option in dogfight mode to have the camera point at the vessel as if from a chase-plane (disable roll).
 	- Option to pick the part to follow instead of CoM / cockpit.
 - Adjust the inertial mode to allow larger initial lags due to sharp movements without becoming unstable.
-- Add inertia to the roll in inertial mode.
 - Ping "HB Stratos" on Scott's discord when done.
 - Add controller support.
 	- Buttons should already be mappable as keybinds, but it would be better to have controller buttons in addition to keyboard keys.
