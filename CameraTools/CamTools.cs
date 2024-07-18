@@ -2604,6 +2604,10 @@ namespace CameraTools
 						ChooseRandomMode();
 					}
 				}
+				else
+				{
+					switchToMode = toolMode; // Don't switch modes.
+				}
 
 				engines = vessel.FindPartModulesImplementing<ModuleEngines>();
 				vesselSwitched = true;
