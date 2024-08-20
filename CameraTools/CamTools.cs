@@ -24,6 +24,7 @@ namespace CameraTools
 		string Version = "unknown";
 		GameObject cameraParent;
 		public Vessel vessel;
+		Transform vesselTransform = null;
 		List<ModuleEngines> engines = new();
 		List<ModuleCommand> cockpits = new();
 		public static HashSet<VesselType> ignoreVesselTypesForAudio = new() { VesselType.Debris, VesselType.SpaceObject, VesselType.Unknown, VesselType.Flag }; // Ignore some vessel types to avoid using up all the SoundManager's channels.
@@ -267,6 +268,7 @@ namespace CameraTools
 		[CTPersistantField] public float dogfightLerp = 0.15f;
 		[CTPersistantField] public float dogfightRoll = 0.2f;
 		[CTPersistantField] public float dogfightInertialFactor = 0.5f;
+		[CTPersistantField] public bool dogfightChasePlaneMode = false;
 		Vector3 dogfightLerpDelta = default;
 		Vector3 dogfightLerpMomentum = default;
 		Vector3 dogfightRotationTarget = default;
@@ -1051,6 +1053,10 @@ namespace CameraTools
 				dogfightLastTarget = true;
 				dogfightVelocityChase = false;
 			}
+			else if (dogfightChasePlaneMode)
+			{
+				dogfightVelocityChase = true; // Fall back to velocity chase if chase plane mode gets disabled while the camera is active.
+			}
 			else if (BDArmory.hasBDA && bdArmory.useCentroid && bdArmory.bdWMVessels.Count > 1)
 			{
 				dogfightLastTarget = true;
@@ -1083,6 +1089,7 @@ namespace CameraTools
 
 			hasDied = false;
 			cameraUp = vessel.up;
+			vesselTransform = vessel.transform;
 
 			SetCameraParent(deathCam.transform, true); // First update the cameraParent to the last deathCam configuration offset for the active vessel's CoM.
 
@@ -1097,7 +1104,7 @@ namespace CameraTools
 
 		void UpdateDogfightCamera()
 		{
-			if (!vessel || (!dogfightTarget && !dogfightLastTarget && !dogfightVelocityChase))
+			if (!vessel || (!dogfightTarget && !dogfightLastTarget && !dogfightVelocityChase && !dogfightChasePlaneMode))
 			{
 				if (DEBUG) { Debug.Log("[CameraTools]: Reverting during UpdateDogfightCamera"); }
 				RevertCamera();
@@ -1138,6 +1145,10 @@ namespace CameraTools
 				mouseAimFlightTargetLocal = cameraTransform.InverseTransformDirection(mouseAimFlightTarget);
 				dogfightLastTargetPosition = (mouseAimFlightTarget.normalized + vessel.srf_vel_direction) * 5000f + vessel.CoM;
 			}
+			else if (dogfightChasePlaneMode)
+			{
+				dogfightLastTargetPosition = vessel.CoM;
+			}
 			else if (BDArmory.hasBDA && bdArmory.useCentroid && bdArmory.bdWMVessels.Count > 1)
 			{
 				dogfightLastTarget = true;
@@ -1172,10 +1183,9 @@ namespace CameraTools
 					dogfightLastTargetPosition += dogfightLastTargetVelocity * TimeWarp.fixedDeltaTime;
 				}
 			}
-			cameraParent.transform.position = vessel.CoM;
-			cameraParent.transform.rotation = vessel.transform.rotation;
+			cameraParent.transform.position = vessel.CoM; // Note don't set cameraParent.transform.rotation as it messes with the Lerping.
 
-			if (dogfightVelocityChase)
+			if (dogfightVelocityChase && !dogfightChasePlaneMode)
 			{
 				var lastDogfightLastTargetPosition = dogfightLastTargetPosition;
 				if (vessel.Speed() > 1 && !vessel.InOrbit())
@@ -1184,7 +1194,7 @@ namespace CameraTools
 				}
 				else
 				{
-					dogfightLastTargetPosition = vessel.CoM + vessel.ReferenceTransform.up * 5000f;
+					dogfightLastTargetPosition = vessel.CoM + vesselTransform.up * 5000f;
 				}
 				if (vessel.Splashed && vessel.altitude > -vesselRadius && vessel.Speed() < 10) // Don't bob around lots if the vessel is in water.
 				{
@@ -1193,9 +1203,9 @@ namespace CameraTools
 			}
 
 			//roll
-			if (dogfightRoll > 0 && !vessel.LandedOrSplashed && !vessel.isEVA && !bdArmory.isBDMissile)
+			if (dogfightRoll > 0 && !vessel.LandedOrSplashed && !vessel.isEVA && !bdArmory.isBDMissile && !dogfightChasePlaneMode)
 			{
-				var vesselRollTarget = Quaternion.RotateTowards(Quaternion.identity, Quaternion.FromToRotation(cameraUp, -vessel.ReferenceTransform.forward), dogfightRoll * Vector3.Angle(cameraUp, -vessel.ReferenceTransform.forward));
+				var vesselRollTarget = Quaternion.RotateTowards(Quaternion.identity, Quaternion.FromToRotation(cameraUp, -vesselTransform.forward), dogfightRoll * Vector3.Angle(cameraUp, -vesselTransform.forward));
 				dogfightCameraRoll = Quaternion.Lerp(dogfightCameraRoll, vesselRollTarget, dogfightLerp);
 				dogfightCameraRollUp = dogfightCameraRoll * cameraUp;
 			}
@@ -1206,11 +1216,11 @@ namespace CameraTools
 
 			if (!(freeLook && fmPivotMode == FMPivotModes.Target)) // Free-look pivoting around the target overrides positioning.
 			{
-				Vector3 lagDirection = (dogfightLastTargetPosition - vessel.CoM).normalized;
+				Vector3 lagDirection = dogfightChasePlaneMode ? vessel.Velocity().normalized : (dogfightLastTargetPosition - vessel.CoM).normalized;
 				Vector3 offsetDirectionY = dogfightOffsetMode switch
 				{
 					DogfightOffsetMode.Camera => dogfightCameraRollUp,
-					DogfightOffsetMode.Vessel => -vessel.ReferenceTransform.forward,
+					DogfightOffsetMode.Vessel => -vesselTransform.forward,
 					_ => cameraUp
 				};
 				Vector3 offsetDirectionX = Vector3.Cross(offsetDirectionY, lagDirection).normalized;
@@ -1287,14 +1297,15 @@ namespace CameraTools
 			else
 			{
 				var rotationTarget = Vector3.Lerp(vessel.CoM, dogfightLastTargetPosition, 0.5f);
-				if (dogfightInertialChaseMode && dogfightInertialFactor > 0)
+				if (dogfightInertialChaseMode && dogfightInertialFactor > 0 && !dogfightChasePlaneMode)
 				{
 					dogfightRotationTarget = Vector3.Lerp(dogfightRotationTarget, rotationTarget, dogfightLerp * (1f - 0.5f * dogfightInertialFactor));
 					rotationTarget = dogfightRotationTarget;
 				}
-				Quaternion camRot = Quaternion.LookRotation(rotationTarget - cameraTransform.position, dogfightCameraRollUp);
-				cameraTransform.rotation = Quaternion.Slerp(cameraTransform.rotation, camRot, bdArmory.aiTargetIsMissile ? dogfightLerp / 2f : dogfightLerp); // Rotate slower for incoming missiles (which can switch frequently).
-				cameraTransform.rotation = Quaternion.Slerp(cameraTransform.rotation, Quaternion.LookRotation(cameraTransform.forward, dogfightCameraRollUp), 2f * dogfightLerp); // Reduce unintended roll due to lerping.
+				if (dogfightChasePlaneMode || dogfightInertialChaseMode)
+					cameraTransform.rotation = Quaternion.Slerp(cameraTransform.rotation, Quaternion.LookRotation(rotationTarget - cameraTransform.position, dogfightCameraRollUp), dogfightLerp * (0.2f + 0.8f * dogfightRoll));
+				else
+					cameraTransform.rotation = Quaternion.LookRotation(rotationTarget - cameraTransform.position, dogfightCameraRollUp);
 				if (MouseAimFlight.IsMouseAimActive)
 				{
 					if (!MouseAimFlight.IsInFreeLookRecovery)
@@ -1465,7 +1476,7 @@ namespace CameraTools
 				}
 			}
 
-			if (BDArmory.hasBDA && (bdArmory.hasBDAI || bdArmory.isBDMissile) && (bdArmory.useBDAutoTarget || (bdArmory.useCentroid && bdArmory.bdWMVessels.Count < 2)))
+			if (BDArmory.hasBDA && (bdArmory.hasBDAI || bdArmory.isBDMissile) && (bdArmory.useBDAutoTarget || (bdArmory.useCentroid && bdArmory.bdWMVessels.Count < 2)) && !dogfightChasePlaneMode)
 			{
 				bdArmory.UpdateAIDogfightTarget();
 				if (bdArmory.isRunningWaypoints)
@@ -3379,11 +3390,18 @@ namespace CameraTools
 					dogfightInertialFactor = inputFields["dogfightInertialFactor"].currentValue;
 				}
 
-				dogfightInertialChaseMode = GUI.Toggle(LabelRect(++line), dogfightInertialChaseMode, Localize("InertialChaseMode"));
+				if (dogfightInertialChaseMode != (dogfightInertialChaseMode = GUI.Toggle(LabelRect(++line), dogfightInertialChaseMode, Localize("InertialChaseMode"))))
+				{
+					dogfightLerpMomentum = default;
+					dogfightLerpDelta = default;
+					dogfightRotationTarget = vessel != null ? vessel.CoM : default;
+				}
 
 				GUI.Label(SliderLabelLeft(++line, contentWidth / 2f - 30f), Localize("DogfightOffsetMode"));
 				dogfightOffsetMode = (DogfightOffsetMode)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)dogfightOffsetMode, 0, DogfightOffsetModeMax));
 				GUI.Label(SliderLabelRight(line, 30f), dogfightOffsetMode.ToString());
+
+				dogfightChasePlaneMode = GUI.Toggle(LabelRect(++line), dogfightChasePlaneMode, Localize("ChasePlaneMode"));
 			}
 			else if (toolMode == ToolModes.Pathing)
 			{
