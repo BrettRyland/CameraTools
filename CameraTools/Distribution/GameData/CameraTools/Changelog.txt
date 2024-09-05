@@ -1,10 +1,10 @@
 Improvements / Bugfixes:
 - Add better handling of dogfight mode for BDA waypoint mode with combat.
 - Adjust get/set accessor templates to return specified types instead of generic objects.
-- Reduce unintended roll and camera offset in dogfight mode due to low lerp rates.
+- Reduce / eliminate unintended roll and camera offset in dogfight mode due to low lerp rates.
 - Add a slider for selecting the reference frame to use for the dogfight offset.
 - Adjust the dogfight inertial chase slider to the range 0—1 and adjust the "inertia" behaviour, including affecting camera rotation.
-- Add a chase plane mode to dogfight mode where the secondary target is the active plane and roll is disabled.
+- Add a chase plane mode to dogfight mode where the secondary target is the active plane and roll is disabled. Allow choosing which part (or CoM) to track.
 
 v1.34.0
 Improvements / Bugfixes:

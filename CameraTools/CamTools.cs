@@ -157,7 +157,6 @@ namespace CameraTools
 		Vector3 lastTargetPosition = Vector3.zero;
 		bool hasTarget = false;
 		bool hasDied = false;
-		float diedTime = 0;
 		//retaining position and rotation after vessel destruction
 		GameObject deathCam;
 		Vector3 deathCamPosition; // Local copies to avoid interacting with the transform all the time.
@@ -269,6 +268,7 @@ namespace CameraTools
 		[CTPersistantField] public float dogfightRoll = 0.2f;
 		[CTPersistantField] public float dogfightInertialFactor = 0.5f;
 		[CTPersistantField] public bool dogfightChasePlaneMode = false;
+		bool chasePlaneTargetIsEVA = false;
 		Vector3 dogfightLerpDelta = default;
 		Vector3 dogfightLerpMomentum = default;
 		Vector3 dogfightRotationTarget = default;
@@ -770,21 +770,29 @@ namespace CameraTools
 			if (waitingForTarget && mouseUp && Input.GetKeyDown(KeyCode.Mouse0))
 			{
 				Part tgt = GetPartFromMouse();
-				if (tgt != null)
+				if (toolMode == ToolModes.DogfightCamera)
 				{
-					camTarget = tgt;
-					hasTarget = true;
+					if (tgt != null && tgt.vessel == vessel) camTarget = tgt;
+					else camTarget = null;
+					chasePlaneTargetIsEVA = camTarget != null ? camTarget.isKerbalEVA() : vessel.isEVA;
 				}
-				else
+				else // Stationary
 				{
-					Vector3 pos = GetPosFromMouse();
-					if (pos != Vector3.zero)
+					if (tgt != null)
 					{
-						lastTargetPosition = pos;
+						camTarget = tgt;
 						hasTarget = true;
 					}
+					else
+					{
+						Vector3 pos = GetPosFromMouse();
+						if (pos != Vector3.zero)
+						{
+							lastTargetPosition = pos;
+							hasTarget = true;
+						}
+					}
 				}
-
 				waitingForTarget = false;
 			}
 
@@ -1147,7 +1155,7 @@ namespace CameraTools
 			}
 			else if (dogfightChasePlaneMode)
 			{
-				dogfightLastTargetPosition = vessel.CoM;
+				dogfightLastTargetPosition = camTarget == null ? vessel.CoM : camTarget.transform.position;
 			}
 			else if (BDArmory.hasBDA && bdArmory.useCentroid && bdArmory.bdWMVessels.Count > 1)
 			{
@@ -1194,7 +1202,7 @@ namespace CameraTools
 				}
 				else
 				{
-					dogfightLastTargetPosition = vessel.CoM + vesselTransform.up * 5000f;
+					dogfightLastTargetPosition = vessel.CoM + (vessel.isEVA ? vesselTransform.forward : vesselTransform.up) * 5000f;
 				}
 				if (vessel.Splashed && vessel.altitude > -vesselRadius && vessel.Speed() < 10) // Don't bob around lots if the vessel is in water.
 				{
@@ -1216,7 +1224,9 @@ namespace CameraTools
 
 			if (!(freeLook && fmPivotMode == FMPivotModes.Target)) // Free-look pivoting around the target overrides positioning.
 			{
-				Vector3 lagDirection = dogfightChasePlaneMode ? vessel.Velocity().normalized : (dogfightLastTargetPosition - vessel.CoM).normalized;
+				Vector3 lagDirection = dogfightChasePlaneMode ?
+					(vessel.Speed() > 1 ? vessel.Velocity().normalized : (chasePlaneTargetIsEVA ? vesselTransform.forward : vesselTransform.up)) :
+					(dogfightLastTargetPosition - vessel.CoM).normalized;
 				Vector3 offsetDirectionY = dogfightOffsetMode switch
 				{
 					DogfightOffsetMode.Camera => dogfightCameraRollUp,
@@ -2579,6 +2589,11 @@ namespace CameraTools
 			{
 				CameraManager.Instance.SetCameraFlight();
 			}
+			if (toolMode == ToolModes.DogfightCamera)
+			{
+				camTarget = null;
+				chasePlaneTargetIsEVA = vessel.isEVA;
+			}
 			cockpitView = false;
 			cockpits.Clear();
 			engines.Clear();
@@ -3202,12 +3217,8 @@ namespace CameraTools
 				GUI.color = origGuiColor;
 				++line;
 
-				string targetText = "None";
-				if (camTarget != null) targetText = camTarget.gameObject.name;
-				GUI.Label(LabelRect(++line), Localize("CameraTarget", targetText), leftLabel);
-				var tgtButtonText = Localize("SetTargetClick");
-				if (waitingForTarget) tgtButtonText = Localize("Waiting");
-				if (GUI.Button(ThinRect(++line), tgtButtonText))
+				GUI.Label(LabelRect(++line), Localize("CameraTarget", camTarget == null ? "None" : camTarget.partInfo.title), leftLabel);
+				if (GUI.Button(ThinRect(++line), waitingForTarget ? Localize("Waiting") : Localize("SetTargetClick")))
 				{
 					waitingForTarget = true;
 					mouseUp = false;
@@ -3401,7 +3412,18 @@ namespace CameraTools
 				dogfightOffsetMode = (DogfightOffsetMode)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)dogfightOffsetMode, 0, DogfightOffsetModeMax));
 				GUI.Label(SliderLabelRight(line, 30f), dogfightOffsetMode.ToString());
 
-				dogfightChasePlaneMode = GUI.Toggle(LabelRect(++line), dogfightChasePlaneMode, Localize("ChasePlaneMode"));
+				if (dogfightChasePlaneMode != (dogfightChasePlaneMode = GUI.Toggle(LabelRect(++line), dogfightChasePlaneMode, Localize("ChasePlaneMode"))))
+				{
+					if (!dogfightChasePlaneMode) camTarget = null;
+				}
+				if (dogfightChasePlaneMode)
+				{ // Co-op the stationary camera's target choosing for targeting specific parts.
+					if (GUI.Button(ThinRect(++line), waitingForTarget ? Localize("Waiting") : Localize("ChasePlaneTarget", camTarget == null ? "CoM" : camTarget.partInfo.title)))
+					{
+						waitingForTarget = true;
+						mouseUp = false;
+					}
+				}
 			}
 			else if (toolMode == ToolModes.Pathing)
 			{
@@ -3819,7 +3841,6 @@ namespace CameraTools
 			if (!hasDied && cameraToolActive && vessel == v)
 			{
 				hasDied = true;
-				diedTime = Time.time;
 				deathCamTarget = null;
 
 				if (toolMode == ToolModes.DogfightCamera)
@@ -3876,7 +3897,7 @@ namespace CameraTools
 			Vector3 mouseAim = new Vector3(Input.mousePosition.x / Screen.width, Input.mousePosition.y / Screen.height, 0);
 			Ray ray = FlightCamera.fetch.mainCamera.ViewportPointToRay(mouseAim);
 			RaycastHit hit;
-			if (Physics.Raycast(ray, out hit, 10000, 1 << 0))
+			if (Physics.Raycast(ray, out hit, 10000, (int)(LayerMasks.Parts | LayerMasks.EVA | LayerMasks.Wheels)))
 			{
 				Part p = hit.transform.GetComponentInParent<Part>();
 				return p;
