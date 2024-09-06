@@ -1297,9 +1297,22 @@ namespace CameraTools
 					if (MouseAimFlight.IsMouseAimActive) MouseAimFlight.SetFreeLookCooldown(1); // Give it 1s for the camera orientation to recover before resuming applying our modification to the MouseAimFlight target.
 				}
 			}
+			Vector2 controllerInput = GetControllerInput(scale: 3f, inverted: true); // Controller input: .x => hdg, .y => pitch
+			if (controllerInput != default)
+			{
+				if (!freeLook)
+				{
+					var vesselCameraOffset = vessel.CoM - cameraTransform.position;
+					freeLookOffset = Vector3.Dot(vesselCameraOffset, cameraTransform.forward) * cameraTransform.forward - vesselCameraOffset;
+					freeLookDistance = (vesselCameraOffset + freeLookOffset).magnitude;
+				}
+				freeLook = true;
+			}
 			if (freeLook)
 			{
-				var rotationAdjustment = Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 3f, Vector3.up) * Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 3f, Vector3.right);
+				var rotationAdjustment = controllerInput != default ?
+					Quaternion.AngleAxis(controllerInput.x, Vector3.up) * Quaternion.AngleAxis(controllerInput.y, Vector3.right) :
+					Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 3f, Vector3.up) * Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 3f, Vector3.right);
 				cameraTransform.rotation *= rotationAdjustment;
 				cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, dogfightCameraRollUp);
 				if (fmPivotMode == FMPivotModes.Target) { cameraTransform.position = vessel.CoM + freeLookOffset - freeLookDistance * cameraTransform.forward; }
@@ -1865,62 +1878,37 @@ namespace CameraTools
 			}
 			else
 			{
-				// if (camTarget == null && Input.GetKey(KeyCode.Mouse1))
-				// {
-				// 	// cameraTransform.rotation *= Quaternion.AngleAxis(Input.GetAxis("Mouse X") * 2f, Vector3.up); //*(Mathf.Abs(Mouse.delta.x)/7)
-				// 	// cameraTransform.rotation *= Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * 2f, Vector3.right);
-				// 	// cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, stationaryCameraRoll * cameraUp);
-				// 	Vector2 angle = new(Input.GetAxis("Mouse X") * 2f, -Input.GetAxis("Mouse Y") * 2f);
-				// 	if (fmMovementModified)
-				// 	{
-				// 		var rotationAdjustment = Quaternion.AngleAxis(angle.y, rightAxis) * Quaternion.AngleAxis(angle.x, upAxis);
-				// 		if (fmPivotMode == FMPivotModes.Target) cameraTransform.position = cameraParent.transform.position + rotationAdjustment * (cameraTransform.position - cameraParent.transform.position);
-				// 		cameraTransform.rotation = rotationAdjustment * cameraTransform.rotation;
-				// 	}
-				// 	else
-				// 	{
-				// 		var rotationAdjustment = Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
-				// 		if (fmPivotMode == FMPivotModes.Target)
-				// 		{
-				// 			var localRotation = cameraTransform.localRotation;
-				// 			cameraTransform.localPosition = localRotation * rotationAdjustment * Quaternion.Inverse(localRotation) * cameraTransform.localPosition;
-				// 		}
-				// 		cameraTransform.rotation *= rotationAdjustment;
-				// 	}
-				// }
-				if (Input.GetKey(KeyCode.Mouse1))
+				Vector2 angle = Input.GetKey(KeyCode.Mouse1) ? new(Input.GetAxis("Mouse X") * 2f, -Input.GetAxis("Mouse Y") * 2f) : default;
+				angle += GetControllerInput(inverted: fmPivotMode == FMPivotModes.Camera); // Controller input: .x => hdg, .y => pitch
+				if (angle != default)
 				{
-					Vector2 angle = new(Input.GetAxis("Mouse X") * 2f, -Input.GetAxis("Mouse Y") * 2f);
-					if (angle != default)
+					if (camTarget == null && !hasTarget) // Local rotation can be overridden
 					{
-						if (camTarget == null && !hasTarget) // Local rotation can be overridden
+						if (fmPivotMode == FMPivotModes.Camera) // Original behaviour (pivoting around a target makes no sense here as there's no target to pivot around)
 						{
-							if (fmPivotMode == FMPivotModes.Camera) // Original behaviour (pivoting around a target makes no sense here as there's no target to pivot around)
-							{
-								cameraTransform.rotation *= Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
-								cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, stationaryCameraRoll * cameraUp);
-							}
+							cameraTransform.rotation *= Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
+							cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, stationaryCameraRoll * cameraUp);
 						}
-						else if (camTarget != null && fmPivotMode == FMPivotModes.Target) // Rotating camera about target (we only set the position, not the rotation here as it's overridden below)
+					}
+					else if (camTarget != null && fmPivotMode == FMPivotModes.Target) // Rotating camera about target (we only set the position, not the rotation here as it's overridden below)
+					{
+						var pivotPoint = targetCoM ? camTarget.vessel.CoM : camTarget.transform.position; // Rotate about the part or CoM.
+						if (fmMovementModified) // Rotation axes aligned with target vessel's axes
 						{
-							var pivotPoint = targetCoM ? camTarget.vessel.CoM : camTarget.transform.position; // Rotate about the part or CoM.
-							if (fmMovementModified) // Rotation axes aligned with target vessel's axes
-							{
-								var pivotUpAxis = -camTarget.vessel.ReferenceTransform.forward;
-								var rotationAdjustment = Quaternion.AngleAxis(angle.y, Vector3.Cross(pivotUpAxis, cameraTransform.forward)) * Quaternion.AngleAxis(angle.x, pivotUpAxis);
-								cameraTransform.position = pivotPoint + rotationAdjustment * (cameraTransform.position - pivotPoint);
-								upAxis = rotationAdjustment * upAxis;
-							}
-							else // Rotation axes aligned with camera's axes
-							{
-								var rotationAdjustment = Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
-								var parentRotation = camTarget.vessel.transform.rotation;
-								var invParentRotation = Quaternion.Inverse(parentRotation);
-								var localRotation = invParentRotation * cameraTransform.rotation;
-								var localPosition = invParentRotation * (cameraTransform.position - pivotPoint);
-								localPosition = localRotation * rotationAdjustment * Quaternion.Inverse(localRotation) * localPosition;
-								cameraTransform.position = pivotPoint + parentRotation * localPosition;
-							}
+							var pivotUpAxis = -camTarget.vessel.ReferenceTransform.forward;
+							var rotationAdjustment = Quaternion.AngleAxis(angle.y, Vector3.Cross(pivotUpAxis, cameraTransform.forward)) * Quaternion.AngleAxis(angle.x, pivotUpAxis);
+							cameraTransform.position = pivotPoint + rotationAdjustment * (cameraTransform.position - pivotPoint);
+							upAxis = rotationAdjustment * upAxis;
+						}
+						else // Rotation axes aligned with camera's axes
+						{
+							var rotationAdjustment = Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
+							var parentRotation = camTarget.vessel.transform.rotation;
+							var invParentRotation = Quaternion.Inverse(parentRotation);
+							var localRotation = invParentRotation * cameraTransform.rotation;
+							var localPosition = invParentRotation * (cameraTransform.position - pivotPoint);
+							localPosition = localRotation * rotationAdjustment * Quaternion.Inverse(localRotation) * localPosition;
+							cameraTransform.position = pivotPoint + parentRotation * localPosition;
 						}
 					}
 				}
@@ -2148,9 +2136,10 @@ namespace CameraTools
 				}
 				else
 				{
-					if (Input.GetKey(KeyCode.Mouse1)) // Right: rotate (pitch/yaw) around the pivot
+					Vector2 angle = Input.GetKey(KeyCode.Mouse1) ? new(Input.GetAxis("Mouse X") * 2f / (zoomExp * zoomExp), -Input.GetAxis("Mouse Y") * 2f / (zoomExp * zoomExp)) : default;
+					angle += GetControllerInput(scale: 2f / (zoomExp * zoomExp), inverted: fmPivotMode == FMPivotModes.Camera); // Controller input: .x => hdg, .y => pitch
+					if (angle != default) // Right: rotate (pitch/yaw) around the pivot
 					{
-						Vector2 angle = new(Input.GetAxis("Mouse X") * 2f / (zoomExp * zoomExp), -Input.GetAxis("Mouse Y") * 2f / (zoomExp * zoomExp));
 						if (fmMovementModified) // Rotation axes aligned with target axes.
 						{
 							var rotationAdjustment = Quaternion.AngleAxis(angle.y, Vector3.Cross(upAxis, flightCamera.transform.forward)) * Quaternion.AngleAxis(angle.x, upAxis);
@@ -3619,7 +3608,7 @@ namespace CameraTools
 			{
 				GUI.Label(new Rect(leftIndent + 140, contentTop + (line * entryHeight), 85, entryHeight), Localize("PressAKey"), leftLabel);
 
-				string inputString = CCInputUtils.GetInputString();
+				string inputString = GetInputString();
 				if (inputString.Length > 0)
 				{
 					isRecordingInput = false;
@@ -4013,6 +4002,21 @@ namespace CameraTools
 			flightCamera.transform.localPosition = Vector3.zero; // We manipulate the deathCam transform and leave the flightCamera transform local values at their defaults.
 			flightCamera.transform.localRotation = Quaternion.identity;
 			flightCamera.SetFoV(currentFOV); // Set the FOV back to whatever we last had (when the camera parent gets stolen, this reverts).
+		}
+
+		/// <summary>
+		/// Get input from the standard camera axes.
+		/// </summary>
+		/// <param name="scale">Scale the output.</param>
+		/// <param name="inverted">Negate the output.</param>
+		/// <returns></returns>
+		Vector2 GetControllerInput(float scale = 2f, bool inverted = false)
+		{
+			if (inverted) scale = -scale;
+			return new(
+				scale * GameSettings.AXIS_CAMERA_HDG.GetAxis(),
+				-scale * GameSettings.AXIS_CAMERA_PITCH.GetAxis()
+			);
 		}
 
 		public static bool GameIsPaused

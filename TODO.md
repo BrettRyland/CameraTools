@@ -3,9 +3,6 @@
 - Allow world-based coordinates for the pathing camera
 	- Geo-spatial pathing mode for pathing between GPS coordinates
 - Ping "HB Stratos" on Scott's discord when done.
-- Add controller support.
-	- Buttons should already be mappable as keybinds, but it would be better to have controller buttons in addition to keyboard keys.
-	- Input.GetAxis should be able to grab the axes (use velocity mode for these).
 
 ### Bugs
 
