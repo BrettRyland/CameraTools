@@ -1,3 +1,4 @@
+v1.35.0
 Improvements / Bugfixes:
 - Add better handling of dogfight mode for BDA waypoint mode with combat.
 - Adjust get/set accessor templates to return specified types instead of generic objects.
