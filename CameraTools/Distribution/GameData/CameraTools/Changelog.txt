@@ -6,6 +6,9 @@ Improvements / Bugfixes:
 - Adjust the dogfight inertial chase slider to the range 0—1 and adjust the "inertia" behaviour, including affecting camera rotation.
 - Add a chase plane mode to dogfight mode where the secondary target is the active plane and roll is disabled. Allow choosing which part (or CoM) to track.
 - Add controller input (AXIS_CAMERA_HDG and AXIS_CAMERA_PITCH) to freelook in dogfight mode and camera rotation in stationary and pathing modes.
+- Add a geospatial pathing option to pathing mode where points are GPS coordinates and rotations are absolute instead of relative to the active vessel.
+	- It can be a bit jittery when Krakensbane is active and the floating origin is more than a few km away.
+	- Also, for now, this is just using spline interpolation between GPS points instead of proper geospatial interpolation via https://www.movable-type.co.uk/scripts/latlong.html, so paths crossing 180° longitude won't work properly.
 
 v1.34.0
 Improvements / Bugfixes:

@@ -21,6 +21,8 @@ namespace CameraTools
 
 		public float secondarySmoothing = 0;
 		public float timeScale = 1;
+		public bool isGeoSpatial = false; // Stored points are GPS coordinates instead of positions relative to the cameraParent and rotations are global instead of local.
+																			// Note: for now, this is just using spline interpolation between GPS points instead of proper geospatial interpolation via https://www.movable-type.co.uk/scripts/latlong.html, maybe I'll add that later.
 
 		Vector3Animation pointCurve;
 		RotationAnimation rotationCurve;
@@ -50,6 +52,7 @@ namespace CameraTools
 			if (node.HasValue("zooms")) { newPath.zooms = ParseFloatList(node.GetValue("zooms")); }
 			if (node.HasValue("secondarySmoothing")) { newPath.secondarySmoothing = float.Parse(node.GetValue("secondarySmoothing")); } else { newPath.secondarySmoothing = 0; }
 			if (node.HasValue("timeScale")) { newPath.timeScale = float.Parse(node.GetValue("timeScale")); } else { newPath.timeScale = 1; }
+			if (node.HasValue("isGeoSpatial")) { newPath.isGeoSpatial = bool.Parse(node.GetValue("isGeoSpatial")); } else { newPath.isGeoSpatial = false; }
 
 			if (node.HasValue("lerpRate") && !node.HasValue("secondarySmoothing")) { var lerpRate = float.Parse(node.GetValue("lerpRate")); newPath.secondarySmoothing = Mathf.Round(-50f * Mathf.Log10(lerpRate)) / 100f; } // Deprecated in favour of secondarySmoothing.
 
@@ -77,6 +80,7 @@ namespace CameraTools
 			pathNode.AddValue("zooms", WriteFloatList(zooms));
 			pathNode.AddValue("secondarySmoothing", secondarySmoothing);
 			pathNode.AddValue("timeScale", timeScale);
+			pathNode.AddValue("isGeoSpatial", isGeoSpatial);
 		}
 
 		public static string WriteVectorList(List<Vector3> list)
@@ -161,8 +165,16 @@ namespace CameraTools
 
 		public void AddTransform(Transform cameraTransform, float zoom, ref float time, PositionInterpolationType positionInterpolationType, RotationInterpolationType rotationInterpolationType)
 		{
-			points.Add(cameraTransform.localPosition);
-			rotations.Add(cameraTransform.localRotation);
+			if (isGeoSpatial)
+			{
+				points.Add((Vector3)WorldPosToGeoCoords(cameraTransform.position));
+				rotations.Add(cameraTransform.rotation);
+			}
+			else
+			{
+				points.Add(cameraTransform.localPosition);
+				rotations.Add(cameraTransform.localRotation);
+			}
 			zooms.Add(zoom);
 			while (times.Contains(time)) time += 1e-3f; // Avoid duplicate times.
 			times.Add(time);
@@ -174,8 +186,16 @@ namespace CameraTools
 
 		public void SetTransform(int index, Transform cameraTransform, float zoom, ref float time, PositionInterpolationType positionInterpolationType, RotationInterpolationType rotationInterpolationType)
 		{
-			points[index] = cameraTransform.localPosition;
-			rotations[index] = cameraTransform.localRotation;
+			if (isGeoSpatial)
+			{
+				points[index] = (Vector3)WorldPosToGeoCoords(cameraTransform.position);
+				rotations[index] = cameraTransform.rotation;
+			}
+			else
+			{
+				points[index] = cameraTransform.localPosition;
+				rotations[index] = cameraTransform.localRotation;
+			}
 			zooms[index] = zoom;
 			while (times.Contains(time)) time += 1e-3f; // Avoid duplicate times.
 			times[index] = time;
@@ -183,6 +203,12 @@ namespace CameraTools
 			rotationInterpolationTypes[index] = rotationInterpolationType;
 			Sort();
 			UpdateCurves();
+		}
+
+		Vector3d WorldPosToGeoCoords(Vector3 position)
+		{
+			FlightGlobals.currentMainBody.GetLatLonAlt(position, out double lat, out double lon, out double alt);
+			return new(lat, lon, alt);
 		}
 
 		public void Refresh()

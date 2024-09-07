@@ -939,6 +939,7 @@ namespace CameraTools
 						}
 						break;
 					case ToolModes.Pathing:
+						if (CTKrakensbane.IsActive && currentPath.isGeoSpatial) cameraParent.transform.position -= CTKrakensbane.FloatingOriginOffsetNonKrakensbane;
 						if (!useRealTime) UpdatePathingCam();
 						if (fmMode == FMModeTypes.Speed)
 						{
@@ -2014,14 +2015,25 @@ namespace CameraTools
 
 		void UpdatePathingCam()
 		{
-			cameraParent.transform.position = vessel.transform.position;
-			cameraParent.transform.rotation = vessel.transform.rotation;
+			if (!currentPath.isGeoSpatial) // Don't update the cameraParent if using geospatial pathing.
+			{
+				cameraParent.transform.position = vessel.transform.position;
+				cameraParent.transform.rotation = vessel.transform.rotation;
+			}
 
 			if (isPlayingPath)
 			{
 				CameraTransformation tf = currentPath.Evaluate(pathTime * currentPath.timeScale);
-				flightCamera.transform.localPosition = Vector3.Lerp(flightCamera.transform.localPosition, tf.position, pathingLerpRate);
-				flightCamera.transform.localRotation = Quaternion.Slerp(flightCamera.transform.localRotation, tf.rotation, pathingLerpRate);
+				if (currentPath.isGeoSpatial)
+				{
+					flightCamera.transform.position = Vector3.Lerp(flightCamera.transform.position, FlightGlobals.currentMainBody.GetWorldSurfacePosition(tf.position.x, tf.position.y, tf.position.z), pathingLerpRate);
+					flightCamera.transform.rotation = Quaternion.Slerp(flightCamera.transform.rotation, tf.rotation, pathingLerpRate);
+				}
+				else
+				{
+					flightCamera.transform.localPosition = Vector3.Lerp(flightCamera.transform.localPosition, tf.position, pathingLerpRate);
+					flightCamera.transform.localRotation = Quaternion.Slerp(flightCamera.transform.localRotation, tf.rotation, pathingLerpRate);
+				}
 				zoomExp = Mathf.Lerp(zoomExp, tf.zoom, pathingLerpRate);
 			}
 			else
@@ -2312,8 +2324,16 @@ namespace CameraTools
 				StartPathingCam();
 			}
 			CameraKeyframe currentKey = currentPath.GetKeyframe(index);
-			flightCamera.transform.localPosition = currentKey.position;
-			flightCamera.transform.localRotation = currentKey.rotation;
+			if (currentPath.isGeoSpatial)
+			{
+				flightCamera.transform.position = FlightGlobals.currentMainBody.GetWorldSurfacePosition(currentKey.position.x, currentKey.position.y, currentKey.position.z);
+				flightCamera.transform.rotation = currentKey.rotation;
+			}
+			else
+			{
+				flightCamera.transform.localPosition = currentKey.position;
+				flightCamera.transform.localRotation = currentKey.rotation;
+			}
 			SetZoomImmediate(currentKey.zoom);
 		}
 
@@ -2353,8 +2373,16 @@ namespace CameraTools
 			}
 
 			CameraTransformation firstFrame = currentPath.Evaluate(startTime);
-			flightCamera.transform.localPosition = firstFrame.position;
-			flightCamera.transform.localRotation = firstFrame.rotation;
+			if (currentPath.isGeoSpatial)
+			{
+				flightCamera.transform.position = FlightGlobals.currentMainBody.GetWorldSurfacePosition(firstFrame.position.x, firstFrame.position.y, firstFrame.position.z);
+				flightCamera.transform.rotation = firstFrame.rotation;
+			}
+			else
+			{
+				flightCamera.transform.localPosition = firstFrame.position;
+				flightCamera.transform.localRotation = firstFrame.rotation;
+			}
 			SetZoomImmediate(firstFrame.zoom);
 
 			isPlayingPath = true;
@@ -3459,11 +3487,11 @@ namespace CameraTools
 						inputFields["pathingTimeScale"].tryParseValue(GUI.TextField(RightRect(line), inputFields["pathingTimeScale"].possibleValue, 8, inputFieldStyle));
 						currentPath.timeScale = inputFields["pathingTimeScale"].currentValue;
 					}
-					if (GUI.Button(LabelRect(++line), useRealTime ? Localize("RealTime") : Localize("InGameTime")))
-					{
-						useRealTime = !useRealTime;
-					}
-					++line;
+					if (GUI.Button(HalfRect(++line, 0), useRealTime ? Localize("RealTime") : Localize("InGameTime")))
+					{ useRealTime = !useRealTime; }
+					if (GUI.Button(HalfRect(line, 1), currentPath.isGeoSpatial ? Localize("GeoSpatialPath") : Localize("StandardPath")))
+					{ currentPath.isGeoSpatial = !currentPath.isGeoSpatial; }
+					line += 0.5f;
 					float viewHeight = Mathf.Max(6f * entryHeight, currentPath.keyframeCount * entryHeight);
 					Rect scrollRect = new Rect(leftIndent, contentTop + (++line * entryHeight), contentWidth, 6 * entryHeight);
 					GUI.Box(scrollRect, string.Empty);
@@ -3483,11 +3511,11 @@ namespace CameraTools
 								GUI.color = origGuiColor;
 							}
 							string kLabel = "#" + i.ToString() + ": " + currentPath.GetKeyframe(i).time.ToString("G3") + "s";
-							if (GUI.Button(new Rect(0f, (i * entryHeight), 3f * viewContentWidth / 4f, entryHeight), kLabel))
+							if (GUI.Button(new Rect(0f, i * entryHeight, 3f * viewContentWidth / 4f, entryHeight), kLabel))
 							{
 								SelectKeyframe(i);
 							}
-							if (GUI.Button(new Rect((3f * contentWidth / 4f), (i * entryHeight), (viewContentWidth / 4f) - 20f, entryHeight), "X"))
+							if (GUI.Button(new Rect(3f * contentWidth / 4f, i * entryHeight, (viewContentWidth / 4f) - 20f, entryHeight), "X"))
 							{
 								DeleteKeyframe(i);
 								break;
