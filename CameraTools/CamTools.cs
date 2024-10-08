@@ -144,6 +144,11 @@ namespace CameraTools
 		readonly List<Tuple<double, string>> debug2Messages = new();
 		void Debug2Log(string m) => debug2Messages.Add(new Tuple<double, string>(Time.time, m));
 		float lastSavedTime = 0;
+		[CTPersistantField] public float UIScale = 1;
+		[CTPersistantField] public bool UIScaleFollowsStock = true;
+		float _UIScale => UIScaleFollowsStock ? GameSettings.UI_SCALE : UIScale;
+		float previousUIScale = 1;
+		bool scalingUI = false;
 
 		#endregion
 
@@ -411,7 +416,7 @@ namespace CameraTools
 
 		void Start()
 		{
-			windowRect = new Rect(Screen.width - windowWidth - 40, 0, windowWidth, windowHeight);
+			windowRect = new Rect(Screen.width - _UIScale * windowWidth - Mathf.CeilToInt(GameSettings.UI_SCALE * 42), 0, windowWidth, windowHeight);
 			flightCamera = FlightCamera.fetch;
 			if (flightCamera == null)
 			{
@@ -488,6 +493,7 @@ namespace CameraTools
 				{"keyZoomSpeed", gameObject.AddComponent<FloatInputField>().Initialise(0, keyZoomSpeed, keyZoomSpeedMin, keyZoomSpeedMax, 4)},
 				{"maxRelV", gameObject.AddComponent<FloatInputField>().Initialise(0, maxRelV, float.MinValue, float.MaxValue, 6)},
 				{"freeLookThresholdSqr", gameObject.AddComponent<FloatInputField>().Initialise(0, freeLookThresholdSqr, 0, 1, 4)},
+				{"UIScale", gameObject.AddComponent<FloatInputField>().Initialise(0, UIScale, 0.5f, 2f, 4)},
 			};
 		}
 
@@ -2813,6 +2819,13 @@ namespace CameraTools
 			if (guiEnabled && gameUIToggle && HighLogic.LoadedSceneIsFlight)
 			{
 				if (inputFieldStyle == null) SetupInputFieldStyle();
+				if (scalingUI && Mouse.Left.GetButtonUp())  // Don't rescale the settings window until the mouse is released otherwise it messes with the slider.
+				{
+					scalingUI = false;
+					windowRect.x += windowRect.width * (previousUIScale - UIScale);
+				}
+				if (scalingUI) { if (previousUIScale != 1) GUIUtility.ScaleAroundPivot(previousUIScale * Vector2.one, windowRect.position); }
+				else { if (_UIScale != 1) GUIUtility.ScaleAroundPivot(_UIScale * Vector2.one, windowRect.position); }
 				windowRect = GUI.Window(GUIUtility.GetControlID(FocusType.Passive), windowRect, GuiWindow, "");
 
 				if (showKeyframeEditor)
@@ -3112,6 +3125,27 @@ namespace CameraTools
 					inputFields["randomModeIVAChance"].currentValue = randomModeIVAChance;
 					inputFields["randomModeStationaryChance"].currentValue = randomModeStationaryChance;
 					inputFields["randomModePathingChance"].currentValue = randomModePathingChance;
+				}
+			}
+			if (UIScaleFollowsStock)
+			{
+				if (UIScaleFollowsStock != (UIScaleFollowsStock = GUI.Toggle(ThinRect(++line), UIScaleFollowsStock, Localize("UIScale", $"{LocalizeStr("UIScaleFollowsStock")} ({GameSettings.UI_SCALE:F2}x)"))))
+				{ windowRect.x += windowRect.width * (GameSettings.UI_SCALE - UIScale); }
+			}
+			else
+			{
+				if (UIScaleFollowsStock != (UIScaleFollowsStock = GUI.Toggle(ThinHalfRect(++line), UIScaleFollowsStock, textInput ? Localize("UIScale") : Localize("UIScale", $"{UIScale:F2}x"))))
+				{ windowRect.x += windowRect.width * (UIScale - GameSettings.UI_SCALE); }
+				if (!scalingUI) previousUIScale = UIScale;
+				if (!textInput)
+				{
+					if (UIScale != (UIScale = MathUtils.RoundToUnit(GUI.HorizontalSlider(new Rect(leftIndent + contentWidth / 2f, contentTop + (line * entryHeight) + 6, contentWidth / 2f, entryHeight), UIScale, 0.5f, 2f), 0.05f)))
+					{ scalingUI = true; }
+				}
+				else
+				{
+					inputFields["UIScale"].tryParseValue(GUI.TextField(RightRect(line), inputFields["UIScale"].possibleValue, 4, inputFieldStyle));
+					if (UIScale != (UIScale = inputFields["UIScale"].currentValue)) windowRect.x += windowRect.width * (previousUIScale - UIScale);
 				}
 			}
 

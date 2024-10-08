@@ -1,3 +1,6 @@
+Improvements / Bugfixes:
+- Add a UI scaling option that is tied to the global UI_SCALE setting by default.
+
 v1.35.0
 Improvements / Bugfixes:
 - Add better handling of dogfight mode for BDA waypoint mode with combat.
