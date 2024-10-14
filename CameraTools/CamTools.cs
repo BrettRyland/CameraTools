@@ -2527,7 +2527,7 @@ namespace CameraTools
 			// Manually handling doppler effects won't work either as there's no events for newly added audioSources and no way to check when the pitch is adjusted for other reasons.
 
 			audioSources = FindObjectsOfType<AudioSource>();
-			// Debug.Log("CameraTools.DEBUG audioSources: " + string.Join(", ", audioSources.Select(a => a.name)));
+			// if (DEBUG) Debug.Log("CameraTools.DEBUG audioSources: " + string.Join(", ", audioSources.Select(a => a.name)));
 			originalAudioSourceSettings.Clear();
 
 			for (int i = 0; i < audioSources.Length; i++)
@@ -2549,7 +2549,7 @@ namespace CameraTools
 						pa.audioSource = audioSources[i];
 						pa.StoreOriginalSettings();
 						pa.ApplyEffects();
-						// if (DEBUG && audioSources[i].isPlaying) Debug.Log($"DEBUG adding part audio controller for {part} on {part.vessel.vesselName} for audiosource {i} ({audioSources[i].name}) with priority: {audioSources[i].priority}, doppler level {audioSources[i].dopplerLevel}, rollOff: {audioSources[i].rolloffMode}, spatialize: {audioSources[i].spatialize}, spatial blend: {audioSources[i].spatialBlend}, min/max dist:{audioSources[i].minDistance}/{audioSources[i].maxDistance}, clip: {audioSources[i].clip?.name}, output group: {audioSources[i].outputAudioMixerGroup}");
+						// if (DEBUG && audioSources[i].isPlaying) Debug.Log($"CameraTools.DEBUG adding part audio controller for {part} on {part.vessel.vesselName} for audiosource {i} ({audioSources[i].name}) with priority: {audioSources[i].priority}, doppler level {audioSources[i].dopplerLevel}, rollOff: {audioSources[i].rolloffMode}, spatialize: {audioSources[i].spatialize}, spatial blend: {audioSources[i].spatialBlend}, min/max dist:{audioSources[i].minDistance}/{audioSources[i].maxDistance}, clip: {audioSources[i].clip?.name}, output group: {audioSources[i].outputAudioMixerGroup}");
 					}
 				}
 				else // Set/reset part audio separately from others.
