@@ -27,7 +27,7 @@ namespace CameraTools
 		Transform vesselTransform = null;
 		List<ModuleEngines> engines = new();
 		List<ModuleCommand> cockpits = new();
-		public static HashSet<VesselType> ignoreVesselTypesForAudio = new() { VesselType.Debris, VesselType.SpaceObject, VesselType.Unknown, VesselType.Flag }; // Ignore some vessel types to avoid using up all the SoundManager's channels.
+		public static HashSet<VesselType> ignoreVesselTypesForAudio = [VesselType.Debris, VesselType.SpaceObject, VesselType.Unknown, VesselType.Flag]; // Ignore some vessel types to avoid using up all the SoundManager's channels.
 		Vector3 origPosition;
 		Quaternion origRotation;
 		Vector3 origLocalPosition;
