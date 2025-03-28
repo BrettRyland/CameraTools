@@ -1,3 +1,7 @@
+v1.36.1
+Improvements / Bugfixes:
+- Add in a missing Krakensbane correction for the dogfight inertial chase camera rotation target.
+
 v1.36.0
 Improvements / Bugfixes:
 - Add a UI scaling option that is tied to the global UI_SCALE setting by default.

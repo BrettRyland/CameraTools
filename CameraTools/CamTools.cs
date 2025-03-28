@@ -594,7 +594,11 @@ namespace CameraTools
 							else if (!inHighWarp && useObtVel != wasUsingObtVel) // Only needed when crossing the boundary.
 								floatingKrakenAdjustment += ((useObtVel ? vessel.obt_velocity : vessel.srf_velocity) - CTKrakensbane.FrameVelocity) * TimeWarp.fixedDeltaTime;
 							if (hasDied) deathCamPosition += floatingKrakenAdjustment;
-							else cameraParent.transform.position += floatingKrakenAdjustment;
+							else
+							{
+								cameraParent.transform.position += floatingKrakenAdjustment;
+								dogfightRotationTarget += floatingKrakenAdjustment;
+							}
 							// if (DEBUG2 && !GameIsPaused)
 							// {
 							// 	var cmb = FlightGlobals.currentMainBody;
