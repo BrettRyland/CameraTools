@@ -24,7 +24,6 @@ namespace CameraTools
 		string Version = "unknown";
 		GameObject cameraParent;
 		public Vessel vessel;
-		Transform vesselTransform = null;
 		List<ModuleEngines> engines = new();
 		List<ModuleCommand> cockpits = new();
 		public static HashSet<VesselType> ignoreVesselTypesForAudio = [VesselType.Debris, VesselType.SpaceObject, VesselType.Unknown, VesselType.Flag]; // Ignore some vessel types to avoid using up all the SoundManager's channels.
@@ -1108,7 +1107,6 @@ namespace CameraTools
 
 			hasDied = false;
 			cameraUp = vessel.up;
-			vesselTransform = vessel.ReferenceTransform != null ? vessel.ReferenceTransform : vessel.transform; // Use the reference transform, but fall back to the regular transform if it's null.
 
 			SetCameraParent(deathCam.transform, true); // First update the cameraParent to the last deathCam configuration offset for the active vessel's CoM.
 
@@ -1153,6 +1151,7 @@ namespace CameraTools
 				{ return; }
 			}
 
+			var vesselTransform = vessel.ReferenceTransform != null ? vessel.ReferenceTransform : vessel.vesselTransform; // Use the reference transform, but fall back to the regular vesselTransform if it's null.
 			var cameraTransform = flightCamera.transform;
 			if (MouseAimFlight.IsMouseAimActive)
 			{ // We need to set these each time as MouseAimFlight can be enabled/disabled while CameraTools is active.
@@ -1538,6 +1537,7 @@ namespace CameraTools
 				}
 				hasDied = false;
 				vessel = FlightGlobals.ActiveVessel;
+				var vesselTransform = vessel.ReferenceTransform != null ? vessel.ReferenceTransform : vessel.vesselTransform; // Use the reference transform, but fall back to the regular vesselTransform if it's null.
 				cameraUp = vessel.up;
 				if (origMode == FlightCamera.Modes.ORBITAL || (origMode == FlightCamera.Modes.AUTO && FlightCamera.GetAutoModeForVessel(vessel) == FlightCamera.Modes.ORBITAL))
 				{
@@ -1571,7 +1571,7 @@ namespace CameraTools
 					if (vessel.Velocity().sqrMagnitude > 1)
 					{ cameraTransform.position = vessel.CoM + distanceAhead * vessel.Velocity().normalized; }
 					else
-					{ cameraTransform.position = vessel.CoM + distanceAhead * vessel.vesselTransform.up; }
+					{ cameraTransform.position = vessel.CoM + distanceAhead * vesselTransform.up; }
 
 					if (flightCamera.mode == FlightCamera.Modes.FREE || FlightCamera.GetAutoModeForVessel(vessel) == FlightCamera.Modes.FREE)
 					{
@@ -1619,7 +1619,7 @@ namespace CameraTools
 					if (vessel.Velocity().sqrMagnitude > 1)
 					{ cameraTransform.position = vessel.CoM + distanceAhead * vessel.Velocity().normalized; }
 					else
-					{ cameraTransform.position = vessel.CoM + distanceAhead * vessel.vesselTransform.up; }
+					{ cameraTransform.position = vessel.CoM + distanceAhead * vesselTransform.up; }
 
 					if (flightCamera.mode == FlightCamera.Modes.FREE || FlightCamera.GetAutoModeForVessel(vessel) == FlightCamera.Modes.FREE)
 					{
