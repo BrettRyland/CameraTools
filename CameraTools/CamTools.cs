@@ -1108,7 +1108,7 @@ namespace CameraTools
 
 			hasDied = false;
 			cameraUp = vessel.up;
-			vesselTransform = vessel.ReferenceTransform;
+			vesselTransform = vessel.ReferenceTransform != null ? vessel.ReferenceTransform : vessel.transform; // Use the reference transform, but fall back to the regular transform if it's null.
 
 			SetCameraParent(deathCam.transform, true); // First update the cameraParent to the last deathCam configuration offset for the active vessel's CoM.
 
