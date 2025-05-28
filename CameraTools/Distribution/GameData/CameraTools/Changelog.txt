@@ -1,5 +1,5 @@
 Improvements / Bugfixes:
-- Use the correct reference transform in the dogfight camera in case the default transform is not the vessel's reference transform.
+- Use the vessel's reference transform in case the default transform is not the correct one.
 
 v1.36.1
 Improvements / Bugfixes:
