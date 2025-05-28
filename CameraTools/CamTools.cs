@@ -1108,7 +1108,7 @@ namespace CameraTools
 
 			hasDied = false;
 			cameraUp = vessel.up;
-			vesselTransform = vessel.transform;
+			vesselTransform = vessel.ReferenceTransform;
 
 			SetCameraParent(deathCam.transform, true); // First update the cameraParent to the last deathCam configuration offset for the active vessel's CoM.
 
@@ -2630,7 +2630,7 @@ namespace CameraTools
 			{
 				bdArmory.CheckForBDAI(v);
 				bdArmory.CheckForBDWM(v);
-				if (!bdArmory.hasBDAI) bdArmory.CheckForBDMissile(FlightGlobals.ActiveVessel);
+				if (!bdArmory.hasBDAI) bdArmory.CheckForBDMissile(v);
 				bdArmory.UpdateAIDogfightTarget(true);
 			}
 			if (cameraToolActive)

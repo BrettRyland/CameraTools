@@ -1,3 +1,6 @@
+Improvements / Bugfixes:
+- Use the correct reference transform in the dogfight camera in case the default transform is not the vessel's reference transform.
+
 v1.36.1
 Improvements / Bugfixes:
 - Add in a missing Krakensbane correction for the dogfight inertial chase camera rotation target.
