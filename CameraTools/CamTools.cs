@@ -1105,6 +1105,13 @@ namespace CameraTools
 				}
 			}
 
+			if (dogfightInertialChaseMode && dogfightInertialFactor > 0)
+			{
+				dogfightLerpMomentum = default;
+				dogfightLerpDelta = default;
+				dogfightRotationTarget = vessel != null ? vessel.CoM : default;
+			}
+
 			hasDied = false;
 			cameraUp = vessel.up;
 

@@ -731,7 +731,7 @@ namespace CameraTools.ModIntegration
 		public void GetBDVessels()
 		{
 			if (!hasBDA || bdLoadedVesselSwitcherVesselsPropertyGetter == null || bdLoadedVesselSwitcherInstance == null) return;
-			bdActiveVessels = (Dictionary<string, List<Vessel>>)bdLoadedVesselSwitcherVesselsPropertyGetter(bdLoadedVesselSwitcherInstance);
+			bdActiveVessels = bdLoadedVesselSwitcherVesselsPropertyGetter(bdLoadedVesselSwitcherInstance);
 			_bdWMVessels = bdActiveVessels.SelectMany(kvp => kvp.Value).ToList(); // FIXME Remove this once SI updates the Centroid mode using bdActiveVessels.
 			_bdWMVesselsLastUpdate = Time.time;
 		}
