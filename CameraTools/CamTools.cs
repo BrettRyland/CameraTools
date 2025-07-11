@@ -1902,11 +1902,9 @@ namespace CameraTools
 				{
 					if (camTarget == null && !hasTarget) // Local rotation can be overridden
 					{
-						if (fmPivotMode == FMPivotModes.Camera) // Original behaviour (pivoting around a target makes no sense here as there's no target to pivot around)
-						{
-							cameraTransform.rotation *= Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
-							cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, stationaryCameraRoll * cameraUp);
-						}
+						// Pivoting around a target makes no sense here as there's no target to pivot around, so we just pivot around the camera.
+						cameraTransform.rotation *= Quaternion.AngleAxis(angle.x, Vector3.up) * Quaternion.AngleAxis(angle.y, Vector3.right);
+						cameraTransform.rotation = Quaternion.LookRotation(cameraTransform.forward, stationaryCameraRoll * cameraUp);
 					}
 					else if (camTarget != null && fmPivotMode == FMPivotModes.Target) // Rotating camera about target (we only set the position, not the rotation here as it's overridden below)
 					{
