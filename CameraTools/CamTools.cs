@@ -2660,7 +2660,7 @@ namespace CameraTools
 			// Actual switching is delayed until the LateUpdate to avoid a flicker.
 			var randomModeOverride = bdArmory.hasPilotAI && bdArmory.aiType == BDArmory.AIType.Pilot && (
 					vessel.LandedOrSplashed ||
-					(vessel.radarAltitude < 20 && vessel.verticalSpeed > 0) // Taking off.
+					(vessel.radarAltitude - vesselRadius < 20 && vessel.verticalSpeed > 0) // Taking off.
 				);
 			var stationarySurfaceVessel = (vessel.Landed && vessel.Speed() < 1) || (vessel.Splashed && vessel.Speed() < 5); // Land or water vessel that isn't moving much.
 			if (stationarySurfaceVessel || randomModeOverride)
