@@ -1572,8 +1572,8 @@ namespace CameraTools
 					setPresetOffset = false;
 
 					float clampedSpeed = Mathf.Clamp((float)vessel.srfSpeed, 0, Mathf.Abs(maxRelV));
-					float sideDistance = Mathf.Clamp(20 + (clampedSpeed / 10), 20, 150);
-					float distanceAhead = Mathf.Clamp(4 * clampedSpeed, 30, 3500) * Mathf.Sign(maxRelV);
+					float sideDistance = Mathf.Min(20 + vesselRadius + (clampedSpeed / 10), 150);
+					float distanceAhead = Mathf.Clamp(4 * clampedSpeed + vesselRadius, 30 + vesselRadius, 3500) * Mathf.Sign(maxRelV);
 
 					if (vessel.Velocity().sqrMagnitude > 1)
 					{ cameraTransform.position = vessel.CoM + distanceAhead * vessel.Velocity().normalized; }
