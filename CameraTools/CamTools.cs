@@ -2643,24 +2643,7 @@ namespace CameraTools
 				if (BDArmory.IsInhibited) RevertCamera();
 				else if (randomMode)
 				{
-					// Actual switching is delayed until the LateUpdate to avoid a flicker.
-					var randomModeOverride = bdArmory.hasPilotAI && bdArmory.aiType == BDArmory.AIType.Pilot && (
-							vessel.LandedOrSplashed ||
-							(vessel.radarAltitude < 20 && vessel.verticalSpeed > vessel.radarAltitude * vessel.radarAltitude / 100) // Taking off.
-						);
-					var stationarySurfaceVessel = (vessel.Landed && vessel.Speed() < 1) || (vessel.Splashed && vessel.Speed() < 5); // Land or water vessel that isn't moving much.
-					if (stationarySurfaceVessel || randomModeOverride)
-					{
-						switchToMode = ToolModes.StationaryCamera;
-					}
-					else if (BDArmory.hasBDA && bdArmory.isBDMissile)
-					{
-						switchToMode = ToolModes.DogfightCamera; // Use dogfight chase mode for BDA missiles.
-					}
-					else
-					{
-						ChooseRandomMode();
-					}
+					ChooseRandomMode();
 				}
 				else
 				{
@@ -2672,29 +2655,47 @@ namespace CameraTools
 			}
 		}
 
-		void ChooseRandomMode()
+		public ToolModes ChooseRandomMode()
 		{
-			cockpits.Clear();
-			var rand = rng.Next(100);
-			if (rand < randomModeDogfightChance)
-			{
-				switchToMode = ToolModes.DogfightCamera;
-			}
-			else if (rand < randomModeDogfightChance + randomModeIVAChance)
-			{
-				switchToMode = ToolModes.DogfightCamera;
-				cockpits = vessel.FindPartModulesImplementing<ModuleCommand>();
-				if (cockpits.Any(c => c.part.protoModuleCrew.Count > 0))
-				{ cockpitView = true; }
-			}
-			else if (rand < randomModeDogfightChance + randomModeIVAChance + randomModeStationaryChance)
+			// Actual switching is delayed until the LateUpdate to avoid a flicker.
+			var randomModeOverride = bdArmory.hasPilotAI && bdArmory.aiType == BDArmory.AIType.Pilot && (
+					vessel.LandedOrSplashed ||
+					(vessel.radarAltitude < 20 && vessel.verticalSpeed > 0) // Taking off.
+				);
+			var stationarySurfaceVessel = (vessel.Landed && vessel.Speed() < 1) || (vessel.Splashed && vessel.Speed() < 5); // Land or water vessel that isn't moving much.
+			if (stationarySurfaceVessel || randomModeOverride)
 			{
 				switchToMode = ToolModes.StationaryCamera;
 			}
+			else if (BDArmory.hasBDA && bdArmory.isBDMissile)
+			{
+				switchToMode = ToolModes.DogfightCamera; // Use dogfight chase mode for BDA missiles.
+			}
 			else
 			{
-				switchToMode = ToolModes.Pathing;
+				cockpits.Clear();
+				var rand = rng.Next(100);
+				if (rand < randomModeDogfightChance)
+				{
+					switchToMode = ToolModes.DogfightCamera;
+				}
+				else if (rand < randomModeDogfightChance + randomModeIVAChance)
+				{
+					switchToMode = ToolModes.DogfightCamera;
+					cockpits = vessel.FindPartModulesImplementing<ModuleCommand>();
+					if (cockpits.Any(c => c.part.protoModuleCrew.Count > 0))
+					{ cockpitView = true; }
+				}
+				else if (rand < randomModeDogfightChance + randomModeIVAChance + randomModeStationaryChance)
+				{
+					switchToMode = ToolModes.StationaryCamera;
+				}
+				else
+				{
+					switchToMode = ToolModes.Pathing;
+				}
 			}
+			return switchToMode;
 		}
 
 		public void RevertCamera()

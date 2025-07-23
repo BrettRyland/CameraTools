@@ -391,7 +391,7 @@ namespace CameraTools.ModIntegration
 					var threat = bdWmThreatFieldGetter(wmComponent); // Priority 3: incoming fire (can also be missiles).
 					if (threat != null)
 					{
-						if (CamTools.DEBUG && threat != camTools.dogfightTarget) CamTools.DebugLog($"Incoming fire/missile {threat.vesselName} (under {(underFire?"fire":"attack")})");
+						if (CamTools.DEBUG && threat != camTools.dogfightTarget) CamTools.DebugLog($"Incoming fire/missile {threat.vesselName} (under {(underFire ? "fire" : "attack")})");
 						return threat;
 					}
 				}
@@ -572,11 +572,11 @@ namespace CameraTools.ModIntegration
 
 				autoEnableOverride = false;
 				if (camTools.cameraToolActive) return; // It's already active.
-
 				if (vessel == null || (hasPilotAI && vessel.LandedOrSplashed)) return; // Don't activate for landed/splashed planes.
 				if (bdCompetitionStartingFieldGetter != null && bdCompetitionStartingFieldGetter(bdCompetitionInstance))
 				{
 					Debug.Log("[CameraTools.ModIntegration.BDArmory]: Activating CameraTools for BDArmory competition as competition is starting.");
+					if (camTools.randomMode) camTools.toolMode = camTools.ChooseRandomMode();
 					camTools.CameraActivate();
 					restoreDistanceLimit = bdRestoreDistanceLimitPropertyGetter != null ? (float)bdRestoreDistanceLimitPropertyGetter(null) : float.MaxValue;
 					return;
@@ -585,6 +585,7 @@ namespace CameraTools.ModIntegration
 				{
 					Debug.Log("[CameraTools.ModIntegration.BDArmory]: Activating CameraTools for BDArmory competition as competition is active.");
 					UpdateAIDogfightTarget(true);
+					if (camTools.randomMode) camTools.toolMode = camTools.ChooseRandomMode();
 					camTools.CameraActivate();
 					restoreDistanceLimit = bdRestoreDistanceLimitPropertyGetter != null ? (float)bdRestoreDistanceLimitPropertyGetter(null) : float.MaxValue;
 					return;
