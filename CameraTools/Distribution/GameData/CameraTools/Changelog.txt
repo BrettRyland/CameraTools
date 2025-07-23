@@ -1,3 +1,10 @@
+Improvements / Bugfixes:
+- Respect random mode when auto-starting for BDArmory.
+- Account for vessel size in choice of random mode.
+- Adjust autoFlyBy/randomMode offsets in stationary camera to account for vessel size.
+- Revert to pivoting around the camera in stationary mode if in target-pivot mode and there's no target to pivot around.
+- Reset lerp momentum for the dogfight inertial chase mode when starting the dogfight camera.
+
 v1.36.2
 Improvements / Bugfixes:
 - Use the vessel's reference transform in case the default transform is not the correct one.
