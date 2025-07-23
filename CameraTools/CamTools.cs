@@ -1605,8 +1605,9 @@ namespace CameraTools
 						RaycastHit hit;
 						do
 						{
-							ray = new Ray(cameraTransform.position, vessel.CoM - cameraTransform.position);
-							if (Physics.Raycast(ray, out hit, (cameraTransform.position - vessel.CoM).magnitude, 1 << 15)) // Just terrain.
+							// Note: we have to use vessel.transform.position instead of vessel.CoM here as the CoM can be below terrain for weird parts.
+							ray = new Ray(cameraTransform.position, vessel.transform.position - cameraTransform.position);
+							if (Physics.Raycast(ray, out hit, (cameraTransform.position - vessel.transform.position).magnitude, 1 << 15)) // Just terrain.
 							{
 								cameraTransform.position += 50 * cameraUp; // Try 50m higher.
 							}
