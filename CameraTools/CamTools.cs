@@ -2888,9 +2888,9 @@ namespace CameraTools
 		Rect SliderLabelLeft(float line, float indent)
 		{ return new Rect(leftIndent, contentTop + line * entryHeight, indent, entryHeight); }
 		Rect SliderLabelRight(float line, float widthAdjust = 0)
-		{ return new Rect(leftIndent + contentWidth - 25f - widthAdjust, contentTop + line * entryHeight, 25f + widthAdjust, entryHeight); }
+		{ return new Rect(leftIndent + contentWidth - 30f - widthAdjust, contentTop + line * entryHeight, 30f + widthAdjust, entryHeight); }
 		Rect SliderRect(float line, float indent, float widthAdjust = 0)
-		{ return new Rect(leftIndent + indent, contentTop + line * entryHeight + 6f, contentWidth - indent - 30f + widthAdjust, entryHeight); }
+		{ return new Rect(leftIndent + indent, contentTop + line * entryHeight + 6f, contentWidth - indent - 35f + widthAdjust, entryHeight); }
 		Rect RightSliderRect(float line)
 		{ return new Rect(windowWidth / 2f + 3f * leftIndent, contentTop + line * entryHeight + 6f, contentWidth / 2f - 3f * leftIndent, entryHeight); }
 		void SetupInputFieldStyle()
@@ -3389,12 +3389,13 @@ namespace CameraTools
 
 				++line;
 
-				GUI.Label(SliderLabelLeft(++line, 55f), Localize("Distance"));
+				GUI.Label(SliderLabelLeft(++line, 60f), Localize("Distance"));
 				if (!textInput)
 				{
-					dogfightDistance = GUI.HorizontalSlider(SliderRect(++line, 0f, -8f), dogfightDistance, 1f, dogfightMaxDistance);
+					float widthAdjust = enableKeypad ? 15f : 5f;
+					dogfightDistance = GUI.HorizontalSlider(SliderRect(++line, 0f, -widthAdjust), dogfightDistance, 1f, dogfightMaxDistance);
 					if (!enableKeypad) dogfightDistance = MathUtils.RoundToUnit(dogfightDistance, 1f);
-					GUI.Label(SliderLabelRight(line, 8f), $"{dogfightDistance:G4}m");
+					GUI.Label(SliderLabelRight(line, widthAdjust), $"{dogfightDistance:G4}m");
 				}
 				else
 				{
@@ -3405,14 +3406,15 @@ namespace CameraTools
 				GUI.Label(LeftRect(++line), Localize("Offset"));
 				if (!textInput)
 				{
+					float widthAdjust = enableKeypad ? 10f : 0f;
 					GUI.Label(SliderLabelLeft(++line, 15f), Localize("X"));
-					dogfightOffsetX = GUI.HorizontalSlider(SliderRect(line, 15f), dogfightOffsetX, -dogfightMaxOffset, dogfightMaxOffset);
+					dogfightOffsetX = GUI.HorizontalSlider(SliderRect(line, 15f, -widthAdjust), dogfightOffsetX, -dogfightMaxOffset, dogfightMaxOffset);
 					if (!enableKeypad) dogfightOffsetX = MathUtils.RoundToUnit(dogfightOffsetX, 1f);
-					GUI.Label(SliderLabelRight(line), $"{dogfightOffsetX:G3}m");
+					GUI.Label(SliderLabelRight(line, widthAdjust), $"{dogfightOffsetX:G3}m");
 					GUI.Label(SliderLabelLeft(++line, 15f), Localize("Y"));
-					dogfightOffsetY = GUI.HorizontalSlider(SliderRect(line, 15f), dogfightOffsetY, -dogfightMaxOffset, dogfightMaxOffset);
+					dogfightOffsetY = GUI.HorizontalSlider(SliderRect(line, 15f, -widthAdjust), dogfightOffsetY, -dogfightMaxOffset, dogfightMaxOffset);
 					if (!enableKeypad) dogfightOffsetY = MathUtils.RoundToUnit(dogfightOffsetY, 1f);
-					GUI.Label(SliderLabelRight(line), $"{dogfightOffsetY:G3}m");
+					GUI.Label(SliderLabelRight(line, widthAdjust), $"{dogfightOffsetY:G3}m");
 					line += 0.5f;
 
 					GUI.Label(SliderLabelLeft(++line, 30f), Localize("Lerp"));
@@ -3471,8 +3473,8 @@ namespace CameraTools
 				}
 
 				GUI.Label(SliderLabelLeft(++line, contentWidth / 2f - 30f), Localize("DogfightOffsetMode"));
-				dogfightOffsetMode = (DogfightOffsetMode)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)dogfightOffsetMode, 0, DogfightOffsetModeMax));
-				GUI.Label(SliderLabelRight(line, 30f), dogfightOffsetMode.ToString());
+				dogfightOffsetMode = (DogfightOffsetMode)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 25f, -25f), (int)dogfightOffsetMode, 0, DogfightOffsetModeMax));
+				GUI.Label(SliderLabelRight(line, 25f), dogfightOffsetMode.ToString());
 
 				if (dogfightChasePlaneMode != (dogfightChasePlaneMode = GUI.Toggle(LabelRect(++line), dogfightChasePlaneMode, Localize("ChasePlaneMode"))))
 				{
@@ -3607,13 +3609,13 @@ namespace CameraTools
 				}
 
 				GUI.Label(SliderLabelLeft(++line, contentWidth / 2f - 30f), Localize("ControlMode"));
-				fmMode = (FMModeTypes)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)fmMode, 0, FMModeTypesMax));
-				GUI.Label(SliderLabelRight(line, 30f), fmMode.ToString());
+				fmMode = (FMModeTypes)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 25f, -25f), (int)fmMode, 0, FMModeTypesMax));
+				GUI.Label(SliderLabelRight(line, 25f), fmMode.ToString());
 			}
 
 			GUI.Label(SliderLabelLeft(++line, contentWidth / 2f - 30f), Localize("PivotMode"));
-			fmPivotMode = (FMPivotModes)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 30f, -30f), (int)fmPivotMode, 0, FMPivotModeMax));
-			GUI.Label(SliderLabelRight(line, 30f), fmPivotMode.ToString());
+			fmPivotMode = (FMPivotModes)Mathf.RoundToInt(GUI.HorizontalSlider(SliderRect(line, contentWidth / 2f - 25f, -25f), (int)fmPivotMode, 0, FMPivotModeMax));
+			GUI.Label(SliderLabelRight(line, 25f), fmPivotMode.ToString());
 			++line;
 
 			// Key bindings
