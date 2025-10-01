@@ -3663,7 +3663,7 @@ namespace CameraTools
 			windowRect.height = windowHeight;// = new Rect(windowRect.x, windowRect.y, windowWidth, windowHeight);
 
 			// Tooltips
-			if (ShowTooltips && Event.current.type == EventType.Repaint && !string.IsNullOrEmpty(GUI.tooltip)) Tooltips.SetTooltip(GUI.tooltip, Event.current.mousePosition + windowRect.position);
+			if (ShowTooltips && Event.current.type == EventType.Repaint && !string.IsNullOrEmpty(GUI.tooltip)) Tooltips.SetTooltip(GUI.tooltip, Event.current.mousePosition * _UIScale + windowRect.position);
 		}
 
 		string KeyBinding(string current, string label, float line)
