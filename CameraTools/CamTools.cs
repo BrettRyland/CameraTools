@@ -783,7 +783,7 @@ namespace CameraTools
 				{
 					if (tgt != null && tgt.vessel == vessel) camTarget = tgt;
 					else camTarget = null;
-					chasePlaneTargetIsEVA = camTarget != null ? camTarget.isKerbalEVA() : vessel.isEVA;
+					chasePlaneTargetIsEVA = camTarget != null ? camTarget.IsKerbalEVA() : vessel.isEVA;
 				}
 				else // Stationary
 				{

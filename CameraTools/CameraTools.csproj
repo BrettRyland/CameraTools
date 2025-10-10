@@ -60,6 +60,8 @@
     <Compile Include="CameraPath.cs" />
     <Compile Include="CameraTransformation.cs" />
     <Compile Include="Curve3D.cs" />
+    <Compile Include="Extensions\PartExtensions.cs" />
+    <Compile Include="Extensions\VesselExtensions.cs" />
     <Compile Include="InputField.cs" />
     <Compile Include="ModIntegration\BDArmory.cs" />
     <Compile Include="ModIntegration\BetterTimeWarp.cs" />
@@ -76,7 +78,6 @@
     <Compile Include="Utils\StringUtils.cs" />
     <Compile Include="Utils\Tooltips.cs" />
     <Compile Include="Vector3Animation.cs" />
-    <Compile Include="VesselExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">

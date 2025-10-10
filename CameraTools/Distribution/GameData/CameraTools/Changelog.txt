@@ -1,3 +1,6 @@
+Improvements / Bugfixes:
+- Compatibility fixes with pre-KSP v1.12 versions.
+
 v1.37.0
 Improvements / Bugfixes:
 - Respect random mode when auto-starting for BDArmory.
