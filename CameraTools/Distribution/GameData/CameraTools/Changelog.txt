@@ -1,5 +1,8 @@
+v1.37.1
 Improvements / Bugfixes:
 - Compatibility fixes with pre-KSP v1.12 versions.
+- Include the UI scaling for the tooltip position (can't adjust size though).
+- Minor layout tweaks to account for strings being clipped for some UI scaling values.
 
 v1.37.0
 Improvements / Bugfixes:
